@@ -224,9 +224,28 @@ F.writeAutoExecScript = function()
 end;
 
 local SaveSys = {file = "CopierSaves.json"}; _G.CopierSaves = _G.CopierSaves or {};
-function SaveSys.load() if type(readfile) == "function" and type(isfile) == "function" and isfile(SaveSys.file) then pc(function() _G.CopierSaves = HS:JSONDecode(readfile(SaveSys.file)) end) end; return _G.CopierSaves or {}; end;
+function SaveSys.load() 
+    if type(readfile) == "function" and type(isfile) == "function" and isfile(SaveSys.file) then 
+        pc(function() 
+            local rawData = readfile(SaveSys.file);
+            local decoded = HS:JSONDecode(rawData);
+            -- Purge/Reset legacy active state from old versions if needed
+            if decoded and type(decoded) == "table" then
+                if decoded["_version"] == nil then
+                    decoded["_last_active"] = nil; -- Delete old version worn active state
+                    decoded["_version"] = 2;
+                    writefile(SaveSys.file, HS:JSONEncode(decoded));
+                end;
+            end;
+            _G.CopierSaves = decoded; 
+        end) 
+    end; 
+    return _G.CopierSaves or {}; 
+end;
+
 function SaveSys.save(name, setAuto)
     name = (name and name ~= "") and name:lower() or "default"; local s = SaveSys.load();
+    s["_version"] = 2;
     local targetUid, targetTN, targetTD = S.cU or lp.UserId, (S.tN ~= "" and S.tN or lp.Name), (S.tD ~= "" and S.tD or lp.DisplayName);
     local ds = S.cDs or F.captureCurrent100();
     local serializedDesc, animData = serializeDescription(ds), {};
@@ -237,6 +256,7 @@ function SaveSys.save(name, setAuto)
     F.writeAutoExecScript();
     pc(function() SG:SetCore(vg, {Title = vf, Text = "Saved Cross-Game Persistent Slot: " .. name, Duration = 4}) end);
 end;
+
 function SaveSys.saveAnimation(name)
     name = (name and name ~= "") and name:lower() or "default_anim"; local s = SaveSys.load(); local ch = lp.Character; local hum = ch and fcc(ch, v1);
     local ds = S.cDs or (hum and pc(function() return hum:GetAppliedDescription() end) and hum:GetAppliedDescription()); local animData = {};
@@ -245,18 +265,21 @@ function SaveSys.saveAnimation(name)
     if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(s)) end) end;
     pc(function() SG:SetCore(vg, {Title = vf, Text = "Saved animation slot: " .. name, Duration = 4}) end);
 end;
+
 function SaveSys.remove(name)
     name = (name and name ~= "") and name:lower() or ""; local s = SaveSys.load();
     if s[name] then s[name] = nil; if s["_last_active"] == name then s["_last_active"] = nil end; _G.CopierSaves = s; if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(s)) end) end; pc(function() SG:SetCore(vg, {Title = vf, Text = "Removed slot: " .. name, Duration = 4}) end);
     else pc(function() SG:SetCore(vg, {Title = "Err", Text = "Save slot not found: " .. name, Duration = 4}) end); end;
 end;
+
 function SaveSys.removeAllAvatarSlots()
     local s, count = SaveSys.load(), 0; for k, v in pairs(s) do if type(v) == "table" and not v.isAnimOnly then s[k] = nil; count = count + 1; end; end;
     s["_last_active"] = nil; _G.CopierSaves = s; if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(s)) end) end;
     pc(function() SG:SetCore(vg, {Title = vf, Text = "Removed " .. tostring(count) .. " avatar slot(s).", Duration = 4}) end);
 end;
+
 function SaveSys.list()
-    local s, kL = SaveSys.load(), {}; for k in pairs(s) do if k ~= "_last_active" then table.insert(kL, k) end; end;
+    local s, kL = SaveSys.load(), {}; for k in pairs(s) do if k ~= "_last_active" and k ~= "_version" then table.insert(kL, k) end; end;
     pc(function() SG:SetCore(vg, {Title = "Saved Slots", Text = #kL > 0 and table.concat(kL, ", ") or "None", Duration = 6}) end);
 end;
 
@@ -485,8 +508,12 @@ local function pCmd(m)
         elseif c == "saves" then SaveSys.list(); return true;
         elseif c == "removesave" or c == "removesaves" then SaveSys.remove(a); return true;
         elseif c == "removeallslot" or c == "removeallslots" then SaveSys.removeAllAvatarSlots(); return true;
-        elseif c == "applysaves" or c == "applysave" then
-            local slotName = (a ~= "" and a ~= nil) and a:lower() or SaveSys.load()["_last_active"] or "default";
+        elseif c == "applychanger" or c == "applychange" then
+            local slotName = (a ~= "" and a ~= nil) and a:lower() or "";
+            if slotName == "" then
+                pc(function() SG:SetCore(vg, {Title = "Err", Text = "Specify a slot: !applychanger <slot>", Duration = 4}) end);
+                return true;
+            end;
             local saves = SaveSys.load();
             local slotData = saves[slotName];
             if slotData then
@@ -495,19 +522,24 @@ local function pCmd(m)
                 if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(saves)) end) end;
                 F.writeAutoExecScript();
                 local targetDesc = slotData.desc and deserializeDescription(slotData.desc);
-                if targetDesc then
-                    S.cU, S.tN, S.tD, S.cDs = slotData.uid or lp.UserId, slotData.tN or lp.Name, slotData.tD or lp.DisplayName, targetDesc;
-                    S.mode = "copy";
-                    CloneEngine.stop();
-                    F.dC(tostring(S.cU), false, nil, true);
+                if slotData.animData and targetDesc then
+                    for aK, aV in pairs(slotData.animData) do pc(function() targetDesc[aK] = aV end); end;
                 end;
-                pc(function() SG:SetCore(vg, {Title = vf, Text = "Permanently applied & set active slot: " .. slotName, Duration = 5}) end);
+                if not targetDesc then
+                    local hum = lp.Character and fcc(lp.Character, v1);
+                    targetDesc = S.cDs or (hum and pc(function() return hum:GetAppliedDescription() end) and hum:GetAppliedDescription()) or INew("HumanoidDescription");
+                end;
+                S.cU, S.tN, S.tD, S.cDs = slotData.uid or lp.UserId, slotData.tN or lp.Name, slotData.tD or lp.DisplayName, targetDesc;
+                S.mode = "copy";
+                CloneEngine.stop();
+                F.dC(tostring(S.cU), false, nil, true);
+                pc(function() SG:SetCore(vg, {Title = vf, Text = "Permanently applied & set active worn slot: " .. slotName, Duration = 5}) end);
             else
                 pc(function() SG:SetCore(vg, {Title = "Err", Text = "Save slot not found: " .. slotName, Duration = 4}) end);
             end;
             return true;
         elseif c == "help" then
-            local helpMsg = "!copy <user> | !clone <user> | !save <slot> | !saves | !applysaves <slot> | !changer <slot> | !restore | !mirror | !stop";
+            local helpMsg = "!copy <user> | !save <slot> | !saves | !applychanger <slot> | !changer <slot> | !restore | !mirror | !stop";
             pc(function() SG:SetCore(vg, {Title = "Copier Help", Text = helpMsg, Duration = 8}) end);
             return true;
         elseif c == "changer" or c == "changerclone" then
@@ -521,9 +553,9 @@ local function pCmd(m)
             if anData then local aMap = anData.animData or (anData.desc and {ClimbAnimation = anData.desc.ClimbAnimation, FallAnimation = anData.desc.FallAnimation, IdleAnimation = anData.desc.IdleAnimation, JumpAnimation = anData.desc.JumpAnimation, RunAnimation = anData.desc.RunAnimation, SwimAnimation = anData.desc.SwimAnimation, WalkAnimation = anData.desc.WalkAnimation}); if aMap and targetDesc then for aK, aV in pairs(aMap) do pc(function() targetDesc[aK] = aV end); end; end; end;
             if not targetDesc then local hum = lp.Character and fcc(lp.Character, v1); targetDesc = S.cDs or (hum and pc(function() return hum:GetAppliedDescription() end) and hum:GetAppliedDescription()) or INew("HumanoidDescription"); end;
             S.cU, S.tN, S.tD, S.cDs = targetUid, targetTN or lp.Name, targetTD or lp.DisplayName, targetDesc; if S.cD then des(S.cD); S.cD = nil end;
-            if avSlot then saves["_last_active"] = avSlot; _G.CopierSaves = saves; if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(saves)) end) end; F.writeAutoExecScript(); end;
+            -- Note: !changer does NOT update _last_active or persistent worn avatar state as requested
             if c == "changerclone" then CloneEngine.start(targetUid); else S.mode = "copy"; CloneEngine.stop(); F.dC(tostring(targetUid), false, nil, true); end;
-            pc(function() SG:SetCore(vg, {Title = vf, Text = "Applied Avatar persistent slot: " .. (avSlot or anSlot), Duration = 4}) end); return true;
+            pc(function() SG:SetCore(vg, {Title = vf, Text = "Switched (Temporary) slot: " .. (avSlot or anSlot), Duration = 4}) end); return true;
         elseif c == "restore" or c == "reset" then restoreDefaultAvatar(); return true;
         elseif c == "mirror" then
             local tp = S.cU and Plrs:GetPlayerByUserId(S.cU);
@@ -1082,7 +1114,7 @@ RC(lp.CharacterAdded:Connect(function(nC)
             else pc(function() F.aAv(nC, S.cD); if S.cU then F.sHD(nC, S.cU) end; F.aDS(nC); local tD = S.cDs; if tD then pc(function() hm:SetEmotes(tD:GetEmotes()); hm:SetEquippedEmotes(tD:GetEquippedEmotes()); end); end; pc(function() F.cNA(nC, S.cU, tD) end); F.rA(nC); S.appliedThisLife = true; end);
             end;
         end;
-    end);
+    end;
 end));
 
 if lp.Character then 
@@ -1093,7 +1125,7 @@ end;
 pc(function()
     SG:SetCore(vg, {
         Title = isPC and "PC Executor Engine Active" or "Mobile ClonerPersistent (+10.77% UX)",
-        Text = "Part Purge, R15 & Tool Fix Active. Cmds: !help | !copy <usr> | !applysaves <slot>",
+        Text = "Part Purge, R15 & Tool Fix Active. Cmds: !help | !copy <usr> | !applychanger <slot>",
         Duration = 8
     });
 end);
