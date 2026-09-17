@@ -127,10 +127,39 @@ local function makeArchivable(m) if not m then return end; m.Archivable = true; 
 
 local function ensureGripAttachments(ch)
     if not ch then return end;
-    local rh = ff(ch, "RightHand") or ff(ch, "Right Arm");
-    if rh and not ff(rh, "RightGripAttachment") then local a = INew(vb, rh); a.Name, a.CFrame = "RightGripAttachment", CF(0, -1, 0); end;
-    local lh = ff(ch, "LeftHand") or ff(ch, "Left Arm");
-    if lh and not ff(lh, "LeftGripAttachment") then local a = INew(vb, lh); a.Name, a.CFrame = "LeftGripAttachment", CF(0, -1, 0); end;
+    for _, partName in ipairs({"RightHand", "Right Arm", "RightLowerArm"}) do
+        local rh = ff(ch, partName);
+        if rh and not ff(rh, "RightGripAttachment") then local a = INew(vb, rh); a.Name, a.CFrame = "RightGripAttachment", CF(0, -1, 0); end;
+    end;
+    for _, partName in ipairs({"LeftHand", "Left Arm", "LeftLowerArm"}) do
+        local lh = ff(ch, partName);
+        if lh and not ff(lh, "LeftGripAttachment") then local a = INew(vb, lh); a.Name, a.CFrame = "LeftGripAttachment", CF(0, -1, 0); end;
+    end;
+end;
+
+-- [[ TOOL PROTECTION & ANTI-DISAPPEARANCE LISTENER ]]
+local function setupToolProtection(ch)
+    if not ch then return end;
+    RC(ch.ChildAdded:Connect(function(child)
+        if child:IsA("Tool") then
+            for _, d in ipairs(child:GetDescendants()) do
+                if d:IsA(v4) then
+                    d.CanCollide = false;
+                    d.Massless = true;
+                end;
+            end;
+        end;
+    end));
+    RC(ch.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("Tool") then
+            for _, d in ipairs(descendant:GetDescendants()) do
+                if d:IsA(v4) then
+                    d.CanCollide = false;
+                    d.Massless = true;
+                end;
+            end;
+        end;
+    end));
 end;
 
 local function serializeDescription(ds)
@@ -456,6 +485,31 @@ local function pCmd(m)
         elseif c == "saves" then SaveSys.list(); return true;
         elseif c == "removesave" or c == "removesaves" then SaveSys.remove(a); return true;
         elseif c == "removeallslot" or c == "removeallslots" then SaveSys.removeAllAvatarSlots(); return true;
+        elseif c == "applysaves" or c == "applysave" then
+            local slotName = (a ~= "" and a ~= nil) and a:lower() or SaveSys.load()["_last_active"] or "default";
+            local saves = SaveSys.load();
+            local slotData = saves[slotName];
+            if slotData then
+                saves["_last_active"] = slotName;
+                _G.CopierSaves = saves;
+                if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(saves)) end) end;
+                F.writeAutoExecScript();
+                local targetDesc = slotData.desc and deserializeDescription(slotData.desc);
+                if targetDesc then
+                    S.cU, S.tN, S.tD, S.cDs = slotData.uid or lp.UserId, slotData.tN or lp.Name, slotData.tD or lp.DisplayName, targetDesc;
+                    S.mode = "copy";
+                    CloneEngine.stop();
+                    F.dC(tostring(S.cU), false, nil, true);
+                end;
+                pc(function() SG:SetCore(vg, {Title = vf, Text = "Permanently applied & set active slot: " .. slotName, Duration = 5}) end);
+            else
+                pc(function() SG:SetCore(vg, {Title = "Err", Text = "Save slot not found: " .. slotName, Duration = 4}) end);
+            end;
+            return true;
+        elseif c == "help" then
+            local helpMsg = "!copy <user> | !clone <user> | !save <slot> | !saves | !applysaves <slot> | !changer <slot> | !restore | !mirror | !stop";
+            pc(function() SG:SetCore(vg, {Title = "Copier Help", Text = helpMsg, Duration = 8}) end);
+            return true;
         elseif c == "changer" or c == "changerclone" then
             killUI(); local arg1, arg2 = a:match("^(%S+)%s*(%S*)$"); if not arg1 or arg1 == "" then pc(function() SG:SetCore(vg, {Title = "Err", Text = "Specify a save slot!", Duration = 4}) end); return true; end;
             local avSlot = (arg1:lower() ~= "none" and arg1:lower() ~= "-" and arg1:lower() ~= "_") and arg1:lower() or nil; local anSlot = (arg2 ~= "" and arg2:lower() ~= "none" and arg2:lower() ~= "-" and arg2:lower() ~= "_") and arg2:lower() or nil;
@@ -678,30 +732,72 @@ F.cNA = function(ch, uid, ds)
 end;
 
 F.aAc = function(ch, ac)
-    if not ac or not ac:IsA(v5) then return end; local h = ff(ac, vH) or fca(ac, v4); if not h then return end;
-    local iR6 = (F.gTRT(ch) == eR6); if iR6 then ensureR6Attachments(ch) end; local at = fcc(h, vb); makeArchivable(ac);
-    for _, v in ipairs(gD(ac)) do if v:IsA(v4) then v.Anchored, v.CanCollide, v.CanTouch, v.CanQuery, v.Massless, v.Archivable = false, false, false, false, true, true; v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0); elseif v:IsA("Script") or v:IsA("LocalScript") then des(v); end; end;
-    local wrapLayer = fcc(h, vv) or fca(ac, vv); if wrapLayer then pc(function() wrapLayer.Enabled = true end) end;
+    if not ac or not ac:IsA(v5) then return end; 
+    local h = ff(ac, vH) or fca(ac, v4); 
+    if not h then return end;
+    local iR6 = (F.gTRT(ch) == eR6); 
+    if iR6 then ensureR6Attachments(ch) else ensureGripAttachments(ch) end; 
+    local at = fcc(h, vb); 
+    makeArchivable(ac);
+    for _, v in ipairs(gD(ac)) do 
+        if v:IsA(v4) then 
+            v.Anchored, v.CanCollide, v.CanTouch, v.CanQuery, v.Massless, v.Archivable = false, false, false, false, true, true; 
+            v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0); 
+        elseif v:IsA("Script") or v:IsA("LocalScript") then 
+            des(v); 
+        end; 
+    end;
+    local wrapLayer = fcc(h, vv) or fca(ac, vv); 
+    if wrapLayer then pc(function() wrapLayer.Enabled = true end) end;
     for _, v in ipairs(gC(h)) do if v:IsA(vu) or v:IsA(vt) or v:IsA(va) then des(v) end; end;
-    h.Name, cCI[h], cCI[ac] = vH, true, true; local tP, tA;
-    if at then cAtt[h], cAtt[ac] = at.Name, at.Name; for _, p in ipairs(gC(ch)) do if p:IsA(v4) then local f = ff(p, at.Name); if f and f:IsA(vb) then tP, tA = p, f; break end; end; end; end;
+    h.Name, cCI[h], cCI[ac] = vH, true, true; 
+    local tP, tA;
+    if at then 
+        cAtt[h], cAtt[ac] = at.Name, at.Name; 
+        for _, p in ipairs(gC(ch)) do 
+            if p:IsA(v4) then 
+                local f = ff(p, at.Name); 
+                if f and f:IsA(vb) then tP, tA = p, f; break end; 
+            end; 
+        end; 
+    end;
     if not (tP and tA) then
         local anL = (at and at.Name:lower()) or ac.Name:lower();
-        if anL:find("hat") or anL:find("hair") or anL:find("face") or anL:find("head") or ac:IsA(v5) then tP = ff(ch, "Head"); if tP then tA = ff(tP, at and at.Name or "") or ff(tP, "HairAttachment") or ff(tP, "HatAttachment") or ff(tP, "FaceCenterAttachment") end;
-        elseif anL:find("neck") then tP = ff(ch, "Torso") or ff(ch, "UpperTorso"); if tP then tA = ff(tP, "NeckAttachment") end;
-        elseif anL:find("back") or anL:find("waist") or anL:find("chest") or anL:find("body") or anL:find("front") then tP = ff(ch, "Torso") or ff(ch, "UpperTorso"); if tP then tA = ff(tP, "BodyBackAttachment") or ff(tP, "BodyFrontAttachment") end;
-        elseif anL:find("leftshoulder") or anL:find("leftarm") then tP = ff(ch, "Left Arm") or ff(ch, "LeftUpperArm") or ff(ch, "Torso"); if tP then tA = ff(tP, "LeftShoulderAttachment") end;
-        elseif anL:find("rightshoulder") or anL:find("rightarm") then tP = ff(ch, "Right Arm") or ff(ch, "RightUpperArm") or ff(ch, "Torso"); if tP then tA = ff(tP, "RightShoulderAttachment") end;
-        elseif anL:find("righthand") or anL:find("rightwrist") then tP = ff(ch, "Right Hand") or ff(ch, "RightLowerArm") or ff(ch, "Right Arm"); if tP then tA = ff(tP, "RightWristAttachment") or ff(tP, "RightGripAttachment") end;
-        elseif anL:find("lefthand") or anL:find("leftwrist") then tP = ff(ch, "Left Hand") or ff(ch, "LeftLowerArm") or ff(ch, "Left Arm"); if tP then tA = ff(tP, "LeftWristAttachment") or ff(tP, "LeftGripAttachment") end; end;
+        if anL:find("hat") or anL:find("hair") or anL:find("face") or anL:find("head") or ac:IsA(v5) then 
+            tP = ff(ch, "Head") or ff(ch, v3); 
+            if tP then tA = ff(tP, at and at.Name or "") or ff(tP, "HairAttachment") or ff(tP, "HatAttachment") or ff(tP, "FaceCenterAttachment") end;
+        elseif anL:find("neck") then 
+            tP = ff(ch, "UpperTorso") or ff(ch, "Torso"); 
+            if tP then tA = ff(tP, "NeckAttachment") end;
+        elseif anL:find("back") or anL:find("waist") or anL:find("chest") or anL:find("body") or anL:find("front") then 
+            tP = ff(ch, "UpperTorso") or ff(ch, "LowerTorso") or ff(ch, "Torso"); 
+            if tP then tA = ff(tP, "BodyBackAttachment") or ff(tP, "BodyFrontAttachment") or ff(tP, "WaistCenterAttachment") end;
+        elseif anL:find("leftshoulder") or anL:find("leftarm") or anL:find("leftupperarm") then 
+            tP = ff(ch, "LeftUpperArm") or ff(ch, "Left Arm") or ff(ch, "UpperTorso"); 
+            if tP then tA = ff(tP, "LeftShoulderAttachment") end;
+        elseif anL:find("rightshoulder") or anL:find("rightarm") or anL:find("rightupperarm") then 
+            tP = ff(ch, "RightUpperArm") or ff(ch, "Right Arm") or ff(ch, "UpperTorso"); 
+            if tP then tA = ff(tP, "RightShoulderAttachment") end;
+        elseif anL:find("righthand") or anL:find("rightwrist") then 
+            tP = ff(ch, "RightHand") or ff(ch, "RightLowerArm") or ff(ch, "Right Arm"); 
+            if tP then tA = ff(tP, "RightWristAttachment") or ff(tP, "RightGripAttachment") end;
+        elseif anL:find("lefthand") or anL:find("leftwrist") then 
+            tP = ff(ch, "LeftHand") or ff(ch, "LeftLowerArm") or ff(ch, "Left Arm"); 
+            if tP then tA = ff(tP, "LeftWristAttachment") or ff(tP, "LeftGripAttachment") end; 
+        end;
     end;
-    if not tP and iR6 then tP = ff(ch, "Head"); if tP then tA = ff(tP, "HairAttachment") or ff(tP, "HatAttachment") end; end;
+    if not tP then 
+        tP = ff(ch, "UpperTorso") or ff(ch, "Torso") or ff(ch, "Head"); 
+    end;
     if tP then
-        ac.Parent, h.Parent = ch, ac; local c0, c1 = tA and tA.CFrame or CFI, at and at.CFrame or ac.AttachmentPoint or CFI; h.CFrame = tP.CFrame * c0 * c1:Inverse();
-        local w = INew(vs); w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable, w.Parent = "AccessoryWeld", tP, h, c0, c1, true, h;
-    else
-        local tPt = ff(ch, v3) or ff(ch, "Head");
-        if tPt then ac.Parent, h.Parent = ch, ac; local bC0, aPt = CF(0, 0.5, 0), (at and at.CFrame) or ac.AttachmentPoint or CFI; h.CFrame = tPt.CFrame * bC0 * aPt:Inverse(); local w = INew(vs); w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable, w.Parent = "AccessoryWeld", tPt, h, bC0, aPt, true, h; else des(ac); end;
+        ac.Parent, h.Parent = ch, ac; 
+        local c0 = tA and tA.CFrame or CFI;
+        local c1 = at and at.CFrame or ac.AttachmentPoint or CFI; 
+        h.CFrame = tP.CFrame * c0 * c1:Inverse();
+        local w = ff(h, "AccessoryWeld") or INew(vs, h); 
+        w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable = "AccessoryWeld", tP, h, c0, c1, true;
+    else 
+        des(ac); 
     end;
 end;
 
@@ -740,7 +836,7 @@ F.aAv = function(ch, dm)
             if not activeFF then
                 activeFF = ffInst;
             else
-                des(ffInst); -- Consolidate duplicates so extra forcefields don't detach and freeze at spawn
+                des(ffInst);
             end;
         end;
     end;
@@ -756,7 +852,6 @@ F.aAv = function(ch, dm)
         end;
     end;
 
-    -- Clean up legacy welds before rebuilding attached model links
     for _, w in ipairs(gD(ch)) do
         if w.Name == "CopierGameReattachWeld" then des(w) end;
     end;
@@ -773,7 +868,7 @@ F.aAv = function(ch, dm)
                             table.insert(preservedGameParts, {part = ePart, targetName = bPart.Name, relCFrame = bPart.CFrame:ToObjectSpace(ePart.CFrame)});
                             des(desc);
                         else
-                            des(ePart); -- Immediate cleanup of detached/orphaned models to prevent frozen floating parts
+                            des(ePart);
                         end;
                     end;
                 end;
@@ -828,7 +923,7 @@ F.aAv = function(ch, dm)
     if rH and savedFC and not fcc(rH, vl) then savedFC.Parent = rH end;
     for _, t in ipairs(gC(d)) do pc(function() if t:IsA(v5) then F.aAc(ch, cln(t)); elseif t:IsA("Shirt") or t:IsA("Pants") or t:IsA("ShirtGraphic") or t:IsA("BodyColors") then local cl = cln(t); cCI[cl], cl.Parent = true, ch; end; end); end; des(d);
     
-    -- [[ REATTACH ACTIVE GAME MODELS CLEANLY (NO FROZEN PARTS) ]]
+    -- [[ REATTACH ACTIVE GAME MODELS CLEANLY ]]
     pc(function()
         for _, item in ipairs(preservedGameParts) do
             local p = item.part;
@@ -841,7 +936,7 @@ F.aAv = function(ch, dm)
                     w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable, w.Parent = "CopierGameReattachWeld", tPart, p, item.relCFrame, CFI, true, p; 
                     cGameWelds[p] = w;
                 else
-                    des(p); -- Destroy part if anchor target is gone to prevent frozen parts
+                    des(p);
                 end;
             else
                 if p and p.Parent then des(p) end;
@@ -849,7 +944,7 @@ F.aAv = function(ch, dm)
         end;
     end);
 
-    -- [[ PHYSICAL COLLISION ENGINE - NO NOCLIP ]]
+    -- [[ PHYSICAL COLLISION ENGINE ]]
     local cg = ff(ch, v2) and ff(ch, v2).CollisionGroup or "Default";
     for _, v in ipairs(gD(ch)) do
         pc(function()
@@ -870,7 +965,6 @@ F.aAv = function(ch, dm)
         end);
     end;
 
-    -- Ensure active ForceField remains anchored strictly to LocalPlayer Character
     if activeFF and activeFF.Parent ~= ch then
         activeFF.Parent = ch;
     end;
@@ -979,7 +1073,7 @@ RC(workspace.DescendantAdded:Connect(function(v) if IA() and v:IsA("Model") and 
 if workspace.CurrentCamera then RC(workspace.CurrentCamera.ChildAdded:Connect(function(v) if IA() and v:IsA("Model") and v ~= lp.Character and isDummyCutsceneModel(v) then ts(applyToCutsceneModel, v) end end)); end;
 
 RC(lp.CharacterAdded:Connect(function(nC)
-    if not IA() or nC:FindFirstChild("_copierApplied") then return end; S.appliedThisLife = false; if not S.isCopied or not S.cU then return end;
+    if not IA() or nC:FindFirstChild("_copierApplied") then return end; S.appliedThisLife = false; setupToolProtection(nC); if not S.isCopied or not S.cU then return end;
     ts(function()
         local hm, root, head = nC:WaitForChild(v1, 10), nC:WaitForChild(v2, 10), nC:WaitForChild(v3, 10); if not hm or not root or not head or not IA() or not nC.Parent then return end;
         protectCharacterFromAutoReset(nC); local mark = INew("BoolValue"); mark.Name, mark.Parent = "_copierApplied", nC; tw(0.25);
@@ -991,12 +1085,15 @@ RC(lp.CharacterAdded:Connect(function(nC)
     end);
 end));
 
-if lp.Character then protectCharacterFromAutoReset(lp.Character) end;
+if lp.Character then 
+    setupToolProtection(lp.Character);
+    protectCharacterFromAutoReset(lp.Character); 
+end;
 
 pc(function()
     SG:SetCore(vg, {
         Title = isPC and "PC Executor Engine Active" or "Mobile ClonerPersistent (+10.77% UX)",
-        Text = "Part Purge & ForceField Fix Active. Cmds: !copy <usr> | !save <slot>",
+        Text = "Part Purge, R15 & Tool Fix Active. Cmds: !help | !copy <usr> | !applysaves <slot>",
         Duration = 8
     });
 end);
