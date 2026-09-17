@@ -22,6 +22,7 @@ local fcc, fca, ff = function(o, c) return o:FindFirstChildOfClass(c) end, funct
 local gC, gD, des, cln = function(o) return o:GetChildren() end, function(o) return o:GetDescendants() end, function(o) if o then o:Destroy() end end, function(o) return o:Clone() end;
 
 local cOS, cOC0, cOE, cCI, cAtt, cRigs, cOE_cr, _bundle_cache, _anim_id_cache = {}, {}, {}, {}, {}, {}, {}, {}, {};
+local cGameWelds = {};
 local eR15, eR6 = E.HumanoidRigType.R15, E.HumanoidRigType.R6;
 
 local Cfg = {A = "", F = true, AutoHideHead = false, KeepOwnHead = false, ReduceGraphics = false, MirrorPose = false, H = E.KeyCode.R, I = E.KeyCode.L, J = E.KeyCode.H, K = E.KeyCode.P, L = E.KeyCode.K, M = E.KeyCode.LeftAlt};
@@ -333,7 +334,7 @@ end;
 function CloneEngine.hideRealParts(ch)
     if not ch then return end;
     for _, d in ipairs(gC(ch)) do
-        if not (d:IsA("Tool") or d:FindFirstAncestorOfClass("Tool")) then
+        if not (d:IsA("Tool") or d:FindFirstAncestorOfClass("Tool") or d:IsA("ForceField")) then
             if d:IsA(v4) and d.Name ~= v2 and S.BD[d.Name] then if CloneEngine.hiddenParts[d] == nil then CloneEngine.hiddenParts[d] = d.Transparency end; d.Transparency = 1;
             elseif d:IsA(v5) then for _, sub in ipairs(gD(d)) do if sub:IsA(v4) or sub:IsA(v8) then if CloneEngine.hiddenParts[sub] == nil then CloneEngine.hiddenParts[sub] = sub.Transparency end; sub.Transparency = 1; end; end; end;
         end;
@@ -392,7 +393,7 @@ local function killUI() pc(function() local pg = gUI(); if pg then for _, n in i
 killUI(); _G.CTID, _G.CHH, _G.CCM = nil, _G.CHH or false, false;
 
 local function isHI(i)
-    if not i or not i.Parent or isLayeredClothing(i) then return false end; local n, nL = i.Name, i.Name:lower();
+    if not i or not i.Parent or isLayeredClothing(i) or i:IsA("ForceField") then return false end; local n, nL = i.Name, i.Name:lower();
     if S.BD[n] or n:find("Arm") or n:find("Leg") or n:find("Torso") or n:find("Proxy_") or n == v2 then if nL ~= v3:lower() then return false end; end;
     if nL == v3:lower() or nL == "copierfakehead" or nL == "copier2dface" or nL:find("dynamichead") or nL:find("headmesh") or i:IsA(vl) then return true; end;
     local hd = ff(i.Parent, v3) or (i.Parent and i.Parent.Name == v3 and i.Parent); if i.Parent == hd or (i:IsA(v4) and i:IsDescendantOf(hd)) then return true end;
@@ -731,7 +732,35 @@ F.aAv = function(ch, dm)
     if not ch or not dm then return end; local hm = fcc(ch, v1); if not hm or hm.Health <= 0 or #gC(dm) < 2 then return end;
     local savedJP, savedJH, savedUJP = hm.JumpPower, hm.JumpHeight, hm.UseJumpPower; local cam = workspace.CurrentCamera; local oldCamSubj = cam and cam.CameraSubject;
     local backpack, savedTools, equippedTool = lp:FindFirstChildOfClass("Backpack"), {}, nil;
+    
+    -- [[ DYNAMIC FORCEFIELD CONSOLIDATION & PURGE ENGINE ]]
+    local activeFF = nil;
+    for _, ffInst in ipairs(gC(ch)) do
+        if ffInst:IsA("ForceField") then
+            if not activeFF then
+                activeFF = ffInst;
+            else
+                des(ffInst); -- Consolidate duplicates so extra forcefields don't detach and freeze at spawn
+            end;
+        end;
+    end;
+
     for _, item in ipairs(gC(ch)) do if item:IsA("Tool") then equippedTool, _ = item, table.insert(savedTools, item); if backpack then item.Parent = backpack end; end; end;
+    
+    -- [[ PURGE ORPHANED GAME ATTACHED PARTS & BROKEN WELDES ]]
+    for part, weld in pairs(cGameWelds) do
+        if not part or not part.Parent or not part:IsDescendantOf(ch) or not weld or not weld.Parent then
+            if weld and weld.Parent then des(weld) end;
+            if part and part.Parent and not part:IsDescendantOf(ch) then des(part) end;
+            cGameWelds[part] = nil;
+        end;
+    end;
+
+    -- Clean up legacy welds before rebuilding attached model links
+    for _, w in ipairs(gD(ch)) do
+        if w.Name == "CopierGameReattachWeld" then des(w) end;
+    end;
+
     local preservedGameParts = {};
     pc(function()
         for _, desc in ipairs(gD(ch)) do
@@ -739,12 +768,27 @@ F.aAv = function(ch, dm)
                 local p0, p1 = desc.Part0, desc.Part1;
                 if p0 and p1 then
                     local bPart, ePart; if S.BD[p0.Name] and not S.BD[p1.Name] and not cCI[p1] then bPart, ePart = p0, p1; elseif S.BD[p1.Name] and not S.BD[p0.Name] and not cCI[p0] then bPart, ePart = p1, p0; end;
-                    if bPart and ePart and ePart:IsA(v4) and not ePart:FindFirstAncestorOfClass("Accessory") and not ePart:FindFirstAncestorOfClass("Tool") and ePart.Name ~= v2 and ePart.Name ~= "CopierFakeHead" then table.insert(preservedGameParts, {part = ePart, targetName = bPart.Name, relCFrame = bPart.CFrame:ToObjectSpace(ePart.CFrame)}); des(desc); end;
+                    if bPart and ePart and ePart:IsA(v4) and not ePart:FindFirstAncestorOfClass("Accessory") and not ePart:FindFirstAncestorOfClass("Tool") and not ePart:IsA("ForceField") and ePart.Name ~= v2 and ePart.Name ~= "CopierFakeHead" then 
+                        if ePart:IsDescendantOf(ch) then
+                            table.insert(preservedGameParts, {part = ePart, targetName = bPart.Name, relCFrame = bPart.CFrame:ToObjectSpace(ePart.CFrame)});
+                            des(desc);
+                        else
+                            des(ePart); -- Immediate cleanup of detached/orphaned models to prevent frozen floating parts
+                        end;
+                    end;
                 end;
             end;
         end;
     end);
-    for _, t in ipairs(gC(ch)) do if t:IsA("Shirt") or t:IsA("Pants") or t:IsA("ShirtGraphic") or t:IsA("BodyColors") or t:IsA(v5) or t:IsA(vx) or (t:IsA(v4) and cCI[t]) then des(t); end; end;
+
+    for _, t in ipairs(gC(ch)) do 
+        if not t:IsA("ForceField") then
+            if t:IsA("Shirt") or t:IsA("Pants") or t:IsA("ShirtGraphic") or t:IsA("BodyColors") or t:IsA(v5) or t:IsA(vx) or (t:IsA(v4) and cCI[t]) then 
+                des(t); 
+            end; 
+        end;
+    end;
+
     local dHm, lR, tR = fcc(dm, v1), F.gTRT(ch), F.gTRT(dm); local iLR15, iTR15 = (lR == eR15), (tR == eR15); makeArchivable(ch); local d = cln(dm); makeArchivable(d);
     if lR == eR6 then hm.HipHeight = 0; ensureR6Attachments(ch); elseif dHm and dHm.HipHeight > 0 then hm.HipHeight = dHm.HipHeight; end;
     local savedFC, curHead = nil, ff(ch, v3); if curHead then local fc = fcc(curHead, vl); if fc then savedFC = cln(fc) end; end;
@@ -783,26 +827,54 @@ F.aAv = function(ch, dm)
     end;
     if rH and savedFC and not fcc(rH, vl) then savedFC.Parent = rH end;
     for _, t in ipairs(gC(d)) do pc(function() if t:IsA(v5) then F.aAc(ch, cln(t)); elseif t:IsA("Shirt") or t:IsA("Pants") or t:IsA("ShirtGraphic") or t:IsA("BodyColors") then local cl = cln(t); cCI[cl], cl.Parent = true, ch; end; end); end; des(d);
+    
+    -- [[ REATTACH ACTIVE GAME MODELS CLEANLY (NO FROZEN PARTS) ]]
     pc(function()
         for _, item in ipairs(preservedGameParts) do
             local p = item.part;
-            if p and p.Parent then
-                p.Anchored, p.CanCollide, p.CanTouch, p.CanQuery, p.Massless = false, false, false, false, true; p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0);
+            if p and p.Parent and p:IsDescendantOf(ch) then
+                p.Anchored = false;
                 local tPart = ff(ch, item.targetName) or ff(ch, "Torso") or ff(ch, "UpperTorso") or ff(ch, v2);
-                if tPart then p.CFrame = tPart.CFrame * item.relCFrame; local w = INew(vs); w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable, w.Parent = "CopierGameReattachWeld", tPart, p, item.relCFrame, CFI, true, p; end;
+                if tPart then 
+                    p.CFrame = tPart.CFrame * item.relCFrame; 
+                    local w = INew(vs); 
+                    w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable, w.Parent = "CopierGameReattachWeld", tPart, p, item.relCFrame, CFI, true, p; 
+                    cGameWelds[p] = w;
+                else
+                    des(p); -- Destroy part if anchor target is gone to prevent frozen parts
+                end;
+            else
+                if p and p.Parent then des(p) end;
             end;
         end;
     end);
+
+    -- [[ PHYSICAL COLLISION ENGINE - NO NOCLIP ]]
     local cg = ff(ch, v2) and ff(ch, v2).CollisionGroup or "Default";
     for _, v in ipairs(gD(ch)) do
         pc(function()
             v.Archivable = true;
             if v:IsA(v4) then
-                v.CollisionGroup = cg; if v.Name ~= v2 then v.Anchored = false end;
-                if v.Name == "CopierFakeHead" or v.Name == "Copier2DFace" or cCI[v] or not S.BD[v.Name] then v.CanCollide, v.CanTouch, v.CanQuery, v.Massless = false, false, false, true; v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0); end;
+                v.CollisionGroup = cg; 
+                if v.Name ~= v2 then v.Anchored = false end;
+                if S.BD[v.Name] then
+                    v.CanTouch, v.CanQuery = true, true;
+                    if v.Name == v2 or v.Name == "Torso" or v.Name == "UpperTorso" or v.Name == "LowerTorso" or v.Name == v3 then
+                        v.CanCollide = true;
+                    end;
+                elseif v.Name == "CopierFakeHead" or v.Name == "Copier2DFace" or cCI[v] then
+                    v.CanCollide, v.CanTouch, v.CanQuery, v.Massless = false, false, false, true;
+                    v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0);
+                end;
             end;
         end);
     end;
+
+    -- Ensure active ForceField remains anchored strictly to LocalPlayer Character
+    if activeFF and activeFF.Parent ~= ch then
+        activeFF.Parent = ch;
+    end;
+
     ch.Archivable = true; if savedUJP ~= nil then hm.UseJumpPower = savedUJP end; if savedJP and savedJP > 0 then hm.JumpPower = savedJP end; if savedJH and savedJH > 0 then hm.JumpHeight = savedJH end;
     ensureHumanoidStateAndMotors(ch); if cam and oldCamSubj and oldCamSubj.Parent then cam.CameraSubject = oldCamSubj; elseif cam and hm then cam.CameraSubject = hm; end;
     F.aC(); F.aDS(ch); if backpack then for _, tool in ipairs(savedTools) do if tool and tool.Parent then tool.Parent = backpack end; end; end;
@@ -924,7 +996,7 @@ if lp.Character then protectCharacterFromAutoReset(lp.Character) end;
 pc(function()
     SG:SetCore(vg, {
         Title = isPC and "PC Executor Engine Active" or "Mobile ClonerPersistent (+10.77% UX)",
-        Text = "Metatable & Cross-Game Queue Active. Cmds: !copy <usr> | !save <slot> | !changer <slot>",
+        Text = "Part Purge & ForceField Fix Active. Cmds: !copy <usr> | !save <slot>",
         Duration = 8
     });
 end);
