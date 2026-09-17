@@ -1,0 +1,930 @@
+local v1, v2, v3, v4, v5, v6, v7, v8, v9 = "Humanoid", "HumanoidRootPart", "Head", "BasePart", "Accessory", "BillboardGui", "SurfaceGui", "Decal", "MeshPart";
+local va, vb, vc, vd, ve, vf, vg, vh, vi = "Motor6D", "Attachment", "TextLabel", "ImageLabel", "Texture", "Copier", "SendNotification", "PlayerGui", "SurfaceAppearance";
+local vj, vk, vl, vm, vn, vo, vp, vq, vr = "SpecialMesh", "DataModelMesh", "FaceControls", "HumanoidDescription", "SPOOF", "CopierUI", "Model", "TextBox", "TextButton";
+local vs, vt, vu, vv, vw, vx, vy, vz, vH = "Weld", "WeldConstraint", "JointInstance", "WrapLayer", "WrapTarget", "CharacterMesh", "StringValue", "Animate", "Handle";
+
+local g = function(s) return game:GetService(s) end;
+local pc, ts, tw, td = pcall, task.spawn, task.wait, task.delay;
+
+-- [[ HARD-LOCKED NATIVE INJECTION ENGINE ]]
+local Plrs = g("Players")
+if not Plrs.LocalPlayer then Plrs:GetPropertyChangedSignal("LocalPlayer"):Wait() end
+local lp = Plrs.LocalPlayer
+
+if _G.cE_HardLocked then 
+    pc(function() g("StarterGui"):SetCore(vg, {Title = "Hard-Locked", Text = "Execution Engine Already Running.", Duration = 5}) end); 
+    return; 
+end
+_G.cE_HardLocked = true;
+
+local INew, V3, U2, C3, V2, E, CF, CFI, TI = Instance.new, Vector3.new, UDim2.new, Color3.new, Vector2.new, Enum, CFrame.new, CFrame.identity, TweenInfo.new;
+local fcc, fca, ff = function(o, c) return o:FindFirstChildOfClass(c) end, function(o, c) return o:FindFirstChildWhichIsA(c) end, function(o, n) return o:FindFirstChild(n) end;
+local gC, gD, des, cln = function(o) return o:GetChildren() end, function(o) return o:GetDescendants() end, function(o) if o then o:Destroy() end end, function(o) return o:Clone() end;
+
+local cOS, cOC0, cOE, cCI, cAtt, cRigs, cOE_cr, _bundle_cache, _anim_id_cache = {}, {}, {}, {}, {}, {}, {}, {}, {};
+local eR15, eR6 = E.HumanoidRigType.R15, E.HumanoidRigType.R6;
+
+local Cfg = {A = "", F = true, AutoHideHead = false, KeepOwnHead = false, ReduceGraphics = false, MirrorPose = false, H = E.KeyCode.R, I = E.KeyCode.L, J = E.KeyCode.H, K = E.KeyCode.P, L = E.KeyCode.K, M = E.KeyCode.LeftAlt};
+
+_G.CEID = (_G.CEID or 0) + 1;
+local mID = _G.CEID;
+local function IA() return _G.CEID == mID end;
+
+local RS, UIS, SG, US, TS, Lighting, CG, HS, PS, TeleportService = g("RunService"), g("UserInputService"), g("StarterGui"), g("UserService"), g("TweenService"), g("Lighting"), g("CoreGui"), g("HttpService"), g("PhysicsService"), g("TeleportService");
+local rN, rD, mI = lp.Name, lp.DisplayName, tostring(lp.UserId);
+local rNL, rDL = rN:lower(), rD:lower();
+local isMobile, isPC = UIS.TouchEnabled and not UIS.KeyboardEnabled, not (UIS.TouchEnabled and not UIS.KeyboardEnabled);
+local mobileScale = isMobile and 1.1077 or 1.0;
+
+pc(function() if PS and PS.RegisterCollisionGroup then PS:RegisterCollisionGroup("CopierCloneGroup"); PS:CollisionGroupSetCollidable("CopierCloneGroup", "Default", false); end end);
+
+-- [[ NATIVE API UI FALLBACK ]]
+local gUI = function()
+    local s, r = pc(function() return (type(gethui) == "function" and gethui()) or CG end);
+    if (not s or not r) or (r and not pcall(function() return r.Name end)) then 
+        local pg = lp:FindFirstChild(vh) or lp:WaitForChild(vh, 3)
+        return pg or CG
+    end
+    return r;
+end;
+
+local StorageFolder = Instance.new("Folder"); StorageFolder.Name = "CopierProtectedStorage"; pc(function() StorageFolder.Parent = gUI() end);
+
+if _G.CCn then for _, c in ipairs(_G.CCn) do pc(function() c:Disconnect() end); end end;
+_G.CCn = {};
+local function RC(c) _G.CCn[#_G.CCn + 1] = c; return c; end;
+
+local S = {cD = nil, cU = nil, tN = "", tD = "", cDs = nil, BD = {}, RM = {}, sCF = nil, appliedThisLife = false, isCopied = false, mode = "copy"};
+for _, v in ipairs({v3, "UpperTorso", "LowerTorso", "LeftFoot", "LeftLowerLeg", "LeftUpperLeg", "RightFoot", "RightLowerLeg", "RightUpperLeg", "LeftHand", "LeftLowerArm", "LeftUpperArm", "RightHand", "RightLowerArm", "RightUpperArm", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg", v2}) do
+    S.BD[v] = 1; pc(function() S.RM[v] = E.BodyPartR15[v] end);
+end;
+
+local F, USs = {}, {x = 0, y = 0, z = 0, s = 1};
+_G.CSUI = _G.CSUI == nil and true or _G.CSUI; _G.CGUI = _G.CGUI == nil and true or _G.CGUI;
+F.sHD = F.sHD or function(ch, uid) end;
+
+-- [[ PLAN 2: AUTO-EXECUTE & TELEPORT QUEUE ENGINE ]]
+local function setupAutoExecuteQueue()
+    local loaderScript = [[
+        repeat task.wait() until game:IsLoaded() and game:GetService("Players").LocalPlayer
+        if not _G.cE_HardLocked then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/User/Copier/main/script.lua"))()
+        end
+    ]]
+    
+    local qot = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+    if qot then
+        pc(function() qot(loaderScript) end)
+    end
+    
+    if type(writefile) == "function" then
+        pc(function() writefile("autoexec/CopierAutoLoader.lua", loaderScript) end)
+        pc(function() writefile("autoexecute/CopierAutoLoader.lua", loaderScript) end)
+    end
+end
+
+RC(TeleportService.TeleportInitFailed:Connect(setupAutoExecuteQueue))
+setupAutoExecuteQueue()
+
+-- [[ PLAN 1: METATABLE ENGINE - MAKE ROBLOX IMAGINE AVATAR IS REAL ]]
+local function hookAvatarMetatable()
+    if not getrawmetatable then return end
+    local grm = getrawmetatable(game)
+    local oldNamecall = grm.__namecall
+    local oldIndex = grm.__index
+    if setreadonly then setreadonly(grm, false) end
+    
+    grm.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if S.isCopied and S.cDs then
+            if (method == "GetAppliedDescription" or method == "getAppliedDescription") and self:IsA("Humanoid") and self:IsDescendantOf(lp.Character) then
+                return S.cDs:Clone()
+            elseif (method == "GetHumanoidDescriptionFromUserId" or method == "getHumanoidDescriptionFromUserId") and self == Plrs then
+                local args = {...}
+                if args[1] == lp.UserId or args[1] == S.cU then
+                    return S.cDs:Clone()
+                end
+            end
+        end
+        return oldNamecall(self, ...)
+    end)
+
+    grm.__index = newcclosure(function(self, k)
+        if S.isCopied and S.cDs and not checkcaller() then
+            if k == "GetAppliedDescription" and self:IsA("Humanoid") and self:IsDescendantOf(lp.Character) then
+                return function() return S.cDs:Clone() end
+            end
+        end
+        return oldIndex(self, k)
+    end)
+    
+    if setreadonly then setreadonly(grm, true) end
+end
+pc(hookAvatarMetatable)
+
+local function makeArchivable(m) if not m then return end; m.Archivable = true; for _, d in ipairs(gD(m)) do pc(function() d.Archivable = true end) end; end;
+
+local function ensureGripAttachments(ch)
+    if not ch then return end;
+    local rh = ff(ch, "RightHand") or ff(ch, "Right Arm");
+    if rh and not ff(rh, "RightGripAttachment") then local a = INew(vb, rh); a.Name, a.CFrame = "RightGripAttachment", CF(0, -1, 0); end;
+    local lh = ff(ch, "LeftHand") or ff(ch, "Left Arm");
+    if lh and not ff(lh, "LeftGripAttachment") then local a = INew(vb, lh); a.Name, a.CFrame = "LeftGripAttachment", CF(0, -1, 0); end;
+end;
+
+local function serializeDescription(ds)
+    if not ds or not ds:IsA("HumanoidDescription") then return nil end;
+    local data = {};
+    pc(function()
+        data.Shirt, data.Pants, data.GraphicTShirt, data.Face, data.Head = ds.Shirt, ds.Pants, ds.GraphicTShirt, ds.Face, ds.Head;
+        data.Torso, data.LeftArm, data.RightArm, data.LeftLeg, data.RightLeg = ds.Torso, ds.LeftArm, ds.RightArm, ds.LeftLeg, ds.RightLeg;
+        if ds.HeadColor then data.HeadColor = {ds.HeadColor.R, ds.HeadColor.G, ds.HeadColor.B} end;
+        if ds.TorsoColor then data.TorsoColor = {ds.TorsoColor.R, ds.TorsoColor.G, ds.TorsoColor.B} end;
+        if ds.LeftArmColor then data.LeftArmColor = {ds.LeftArmColor.R, ds.LeftArmColor.G, ds.LeftArmColor.B} end;
+        if ds.RightArmColor then data.RightArmColor = {ds.RightArmColor.R, ds.RightArmColor.G, ds.RightArmColor.B} end;
+        if ds.LeftLegColor then data.LeftLegColor = {ds.LeftLegColor.R, ds.LeftLegColor.G, ds.LeftLegColor.B} end;
+        if ds.RightLegColor then data.RightLegColor = {ds.RightLegColor.R, ds.RightLegColor.G, ds.RightLegColor.B} end;
+        data.DepthScale, data.HeightScale, data.WidthScale, data.HeadScale = ds.DepthScale, ds.HeightScale, ds.WidthScale, ds.HeadScale;
+        data.ProportionScale, data.BodyTypeScale = ds.ProportionScale, ds.BodyTypeScale;
+        data.ClimbAnimation, data.FallAnimation, data.IdleAnimation = ds.ClimbAnimation, ds.FallAnimation, ds.IdleAnimation;
+        data.JumpAnimation, data.RunAnimation, data.SwimAnimation, data.WalkAnimation = ds.JumpAnimation, ds.RunAnimation, ds.SwimAnimation, ds.WalkAnimation;
+        local em, eq = ds:GetEmotes(), ds:GetEquippedEmotes(); if em then data.Emotes = em end; if eq then data.EquippedEmotes = eq end;
+        local accs, getAcc = {}, ds:GetAccessories(true);
+        for _, a in ipairs(getAcc) do table.insert(accs, {AssetId = a.AssetId, AccessoryType = a.AccessoryType and a.AccessoryType.Value or 0, Order = a.Order or 0, Puffiness = a.Puffiness or 0}); end;
+        data.Accessories = accs;
+    end);
+    return data;
+end;
+
+local function deserializeDescription(data)
+    if not data or type(data) ~= "table" then return nil end;
+    local ds = INew("HumanoidDescription"); makeArchivable(ds);
+    pc(function()
+        for k, v in pairs({"Shirt", "Pants", "GraphicTShirt", "Face", "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg", "DepthScale", "HeightScale", "WidthScale", "HeadScale", "ProportionScale", "BodyTypeScale", "ClimbAnimation", "FallAnimation", "IdleAnimation", "JumpAnimation", "RunAnimation", "SwimAnimation", "WalkAnimation"}) do
+            if data[v] ~= nil then ds[v] = data[v] end;
+        end;
+        for _, c in ipairs({"HeadColor", "TorsoColor", "LeftArmColor", "RightArmColor", "LeftLegColor", "RightLegColor"}) do
+            if data[c] then ds[c] = C3(data[c][1], data[c][2], data[c][3]) end;
+        end;
+        if data.Emotes then ds:SetEmotes(data.Emotes) end; if data.EquippedEmotes then ds:SetEquippedEmotes(data.EquippedEmotes) end;
+        if data.Accessories and #data.Accessories > 0 then
+            local accs = {};
+            for _, a in ipairs(data.Accessories) do
+                local atEnum = Enum.AccessoryType.Hat;
+                pc(function() for _, e in ipairs(Enum.AccessoryType:GetEnumItems()) do if e.Value == a.AccessoryType then atEnum = e; break; end; end; end);
+                table.insert(accs, {AssetId = a.AssetId, AccessoryType = atEnum, Order = a.Order or 0, Puffiness = a.Puffiness or 0});
+            end;
+            ds:SetAccessories(accs, false);
+        end;
+    end);
+    return ds;
+end;
+
+F.captureCurrent100 = function()
+    local ch = lp.Character; if not ch then return nil end;
+    local hum = fcc(ch, v1); if not hum then return nil end;
+    local ds; pc(function() ds = hum:GetAppliedDescription() end);
+    if not ds then pc(function() ds = Plrs:GetHumanoidDescriptionFromUserId(lp.UserId) end) end;
+    if not ds then ds = INew("HumanoidDescription") end;
+    makeArchivable(ds); return cln(ds);
+end;
+
+F.writeAutoExecScript = function()
+    setupAutoExecuteQueue();
+end;
+
+local SaveSys = {file = "CopierSaves.json"}; _G.CopierSaves = _G.CopierSaves or {};
+function SaveSys.load() if type(readfile) == "function" and type(isfile) == "function" and isfile(SaveSys.file) then pc(function() _G.CopierSaves = HS:JSONDecode(readfile(SaveSys.file)) end) end; return _G.CopierSaves or {}; end;
+function SaveSys.save(name, setAuto)
+    name = (name and name ~= "") and name:lower() or "default"; local s = SaveSys.load();
+    local targetUid, targetTN, targetTD = S.cU or lp.UserId, (S.tN ~= "" and S.tN or lp.Name), (S.tD ~= "" and S.tD or lp.DisplayName);
+    local ds = S.cDs or F.captureCurrent100();
+    local serializedDesc, animData = serializeDescription(ds), {};
+    if ds then animData = {ClimbAnimation = ds.ClimbAnimation, FallAnimation = ds.FallAnimation, IdleAnimation = ds.IdleAnimation, JumpAnimation = ds.JumpAnimation, RunAnimation = ds.RunAnimation, SwimAnimation = ds.SwimAnimation, WalkAnimation = ds.WalkAnimation}; end;
+    s[name] = {uid = targetUid, tN = targetTN, tD = targetTD, desc = serializedDesc, animData = animData};
+    if setAuto ~= false then s["_last_active"] = name end;
+    _G.CopierSaves = s; if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(s)) end) end;
+    F.writeAutoExecScript();
+    pc(function() SG:SetCore(vg, {Title = vf, Text = "Saved Cross-Game Persistent Slot: " .. name, Duration = 4}) end);
+end;
+function SaveSys.saveAnimation(name)
+    name = (name and name ~= "") and name:lower() or "default_anim"; local s = SaveSys.load(); local ch = lp.Character; local hum = ch and fcc(ch, v1);
+    local ds = S.cDs or (hum and pc(function() return hum:GetAppliedDescription() end) and hum:GetAppliedDescription()); local animData = {};
+    if ds then animData = {ClimbAnimation = ds.ClimbAnimation, FallAnimation = ds.FallAnimation, IdleAnimation = ds.IdleAnimation, JumpAnimation = ds.JumpAnimation, RunAnimation = ds.RunAnimation, SwimAnimation = ds.SwimAnimation, WalkAnimation = ds.WalkAnimation}; end;
+    s[name] = {isAnimOnly = true, animData = animData}; _G.CopierSaves = s;
+    if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(s)) end) end;
+    pc(function() SG:SetCore(vg, {Title = vf, Text = "Saved animation slot: " .. name, Duration = 4}) end);
+end;
+function SaveSys.remove(name)
+    name = (name and name ~= "") and name:lower() or ""; local s = SaveSys.load();
+    if s[name] then s[name] = nil; if s["_last_active"] == name then s["_last_active"] = nil end; _G.CopierSaves = s; if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(s)) end) end; pc(function() SG:SetCore(vg, {Title = vf, Text = "Removed slot: " .. name, Duration = 4}) end);
+    else pc(function() SG:SetCore(vg, {Title = "Err", Text = "Save slot not found: " .. name, Duration = 4}) end); end;
+end;
+function SaveSys.removeAllAvatarSlots()
+    local s, count = SaveSys.load(), 0; for k, v in pairs(s) do if type(v) == "table" and not v.isAnimOnly then s[k] = nil; count = count + 1; end; end;
+    s["_last_active"] = nil; _G.CopierSaves = s; if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(s)) end) end;
+    pc(function() SG:SetCore(vg, {Title = vf, Text = "Removed " .. tostring(count) .. " avatar slot(s).", Duration = 4}) end);
+end;
+function SaveSys.list()
+    local s, kL = SaveSys.load(), {}; for k in pairs(s) do if k ~= "_last_active" then table.insert(kL, k) end; end;
+    pc(function() SG:SetCore(vg, {Title = "Saved Slots", Text = #kL > 0 and table.concat(kL, ", ") or "None", Duration = 6}) end);
+end;
+
+local function isLayeredClothing(i)
+    if not i or not i:IsA(v5) then return false end; local ok, at = pc(function() return i.AccessoryType end);
+    if ok and at and (at == E.AccessoryType.Jacket or at == E.AccessoryType.Sweater or at == E.AccessoryType.Pants or at == E.AccessoryType.Shorts or at == E.AccessoryType.Shirt or at == E.AccessoryType.TShirt or at == E.AccessoryType.Dress or at == E.AccessoryType.Skirt) then return true; end;
+    return fcc(i, vv) ~= nil;
+end;
+
+local ultraLowApplied = false;
+local function applyGraphicsReduction()
+    if ultraLowApplied then return end; ultraLowApplied = true;
+    pc(function()
+        if settings and settings().Rendering then settings().Rendering.QualityLevel = E.QualityLevel.Level01 end; Lighting.GlobalShadows, Lighting.FogEnd = false, 9e9;
+        for _, v in ipairs(Lighting:GetChildren()) do if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect") or v:IsA("DepthOfFieldEffect") then v.Enabled = false; end; end;
+    end);
+end;
+
+ts(function()
+    local lT = 0; while IA() do local dt = tw(0.5); local fps = 1 / (dt or 0.033);
+        if fps < 22 then lT = lT + 0.5; if lT >= 3.0 and not ultraLowApplied then applyGraphicsReduction(); pc(function() SG:SetCore(vg, {Title = "Lag Detector", Text = "Graphics adjusted to preserve performance!", Duration = 4}) end); end;
+        else lT = math.max(0, lT - 0.5); end;
+    end;
+end);
+
+local function normalizeHeadSize(h, dH, hum)
+    if not h or not dH then return end;
+    if hum then local hs = ff(hum, "HeadScale"); if hs and hs:IsA("NumberValue") then hs.Value = math.clamp(hs.Value, 0.5, 1.25) end; end;
+    if h:IsA(v9) and dH:IsA(v9) then h.MeshId, h.TextureID = dH.MeshId, dH.TextureID; local s = dH.Size; h.Size = V3(math.clamp(s.X, 0.5, 2.2), math.clamp(s.Y, 0.5, 2.2), math.clamp(s.Z, 0.5, 2.2));
+    else
+        local rM, dM = fcc(h, vj) or fcc(h, vk), fcc(dH, vj) or fcc(dH, vk);
+        if dM then if not rM then rM = INew(vj, h) end; rM.MeshId, rM.TextureId = dM.MeshId, dM.TextureId; local sc = dM.Scale; rM.Scale = V3(math.clamp(sc.X, 0.4, 1.3), math.clamp(sc.Y, 0.4, 1.3), math.clamp(sc.Z, 0.4, 1.3));
+        elseif dH:IsA(v9) then if not rM then rM = INew(vj, h) end; rM.MeshId, rM.TextureId, rM.Scale = dH.MeshId, dH.TextureID, V3(1, 1, 1); end;
+    end;
+end;
+
+local function protectCharacterFromAutoReset(c) end;
+local function clearBundleCache() for k, v in pairs(_bundle_cache) do if v and v.m then des(v.m) end; _bundle_cache[k] = nil; end end;
+
+local function ensureHumanoidStateAndMotors(mC)
+    if not mC then return end; local hm = fcc(mC, v1); if not hm or hm.Health <= 0 then return end;
+    pc(function()
+        hm.EvaluateStateMachine = true; for _, st in ipairs(Enum.HumanoidStateType:GetEnumItems()) do if st ~= Enum.HumanoidStateType.None and st ~= Enum.HumanoidStateType.Dead then hm:SetStateEnabled(st, true) end; end;
+        local st = hm:GetState(); if st == Enum.HumanoidStateType.None or st == Enum.HumanoidStateType.Physics then hm:ChangeState(Enum.HumanoidStateType.GettingUp) end;
+    end);
+    local root = ff(mC, v2);
+    if root then local lowerTorso = ff(mC, "LowerTorso") or ff(mC, "Torso"); if lowerTorso then local rj = ff(root, "RootJoint") or ff(lowerTorso, "RootJoint"); if rj and rj:IsA(va) then rj.Enabled = true; if rj.Part0 ~= root then rj.Part0 = root end; if rj.Part1 ~= lowerTorso then rj.Part1 = lowerTorso end; end; end; end;
+    ensureGripAttachments(mC);
+end;
+
+local AnimationEngine = {};
+do
+    local pK = {};
+    function AnimationEngine.resolvePackage(aId)
+        if not aId or type(aId) ~= "number" or aId <= 0 then return nil end; if pK[aId] ~= nil then return pK[aId] end;
+        local ex, ok = {}, pc(function()
+            local objs = game:GetObjects("rbxassetid://" .. tostring(aId));
+            if objs then for _, o in ipairs(objs) do if o:IsA("Animation") and o.AnimationId ~= "" then local w = ff(o, "Weight"); table.insert(ex, {id = o.AnimationId, weight = (w and w:IsA("NumberValue")) and w.Value or 1}); end; for _, d in ipairs(gD(o)) do if d:IsA("Animation") and d.AnimationId ~= "" then local w = ff(d, "Weight"); table.insert(ex, {id = d.AnimationId, weight = (w and w:IsA("NumberValue")) and w.Value or 1}); end; end; end; end;
+        end);
+        local res = (ok and #ex > 0) and ex or false; pK[aId] = res; return res;
+    end;
+    function AnimationEngine.fromDescription(d)
+        if not d then return nil end; local set, map = {}, {idle = d.IdleAnimation, walk = d.WalkAnimation, run = d.RunAnimation, jump = d.JumpAnimation, fall = d.FallAnimation, climb = d.ClimbAnimation, swim = d.SwimAnimation};
+        for cat, pId in pairs(map) do if pId and pId > 0 then local r = AnimationEngine.resolvePackage(pId); if r then set[cat] = r end; end; end; return set;
+    end;
+    function AnimationEngine.copyFromCharacter(tC, mC)
+        if not tC or not mC then return false end; local tA, mA = ff(tC, vz), ff(mC, vz);
+        local ok = pc(function()
+            if tA and mA then for _, v in ipairs(gC(tA)) do if v:IsA("StringValue") then local mV = ff(mA, v.Name); if mV and mV:IsA("StringValue") then for _, c in ipairs(gC(mV)) do if c:IsA("Animation") then des(c) end end; for _, c in ipairs(gC(v)) do if c:IsA("Animation") then cln(c).Parent = mV end end; end; end; end; end;
+            local tHum = fcc(tC, v1); if tHum then local tAnim = fcc(tHum, "Animator"); if tAnim then for _, tr in ipairs(tAnim:GetPlayingAnimationTracks()) do if tr.Animation and tr.Animation.AnimationId ~= "" then local aName, targetVal = tr.Name:lower(), nil; if aName:find("walk") or aName:find("run") then targetVal = ff(mA, "walk") or ff(mA, "run"); elseif aName:find("idle") then targetVal = ff(mA, "idle"); elseif aName:find("jump") then targetVal = ff(mA, "jump"); elseif aName:find("fall") then targetVal = ff(mA, "fall"); end; if targetVal then local newA = INew("Animation"); newA.Name, newA.AnimationId, newA.Parent = "GameTrack_" .. tr.Name, tr.Animation.AnimationId, targetVal; end; end; end; end; end;
+        end);
+        return ok == true;
+    end;
+    function AnimationEngine.applyToCharacter(mC, set)
+        if not mC or not set then return false end; local mA = ff(mC, vz); if not mA then return false end;
+        local sN = {walk = "WalkAnim", run = "RunAnim", jump = "JumpAnim", fall = "FallAnim", climb = "ClimbAnim", swim = "SwimAnim", sit = "SitAnim", swimidle = "SwimIdleAnim"};
+        local ok = pc(function()
+            for cat, anims in pairs(set) do local aV = ff(mA, cat); if aV and aV:IsA("StringValue") and anims and #anims > 0 then for _, c in ipairs(gC(aV)) do if c:IsA("Animation") then des(c) end end; if cat == "idle" then for idx, item in ipairs(anims) do local nA = INew("Animation"); nA.Name, nA.AnimationId = "Animation" .. tostring(idx), item.id; local wV = INew("NumberValue"); wV.Name, wV.Value, wV.Parent = "Weight", item.weight or (idx == 1 and 9 or 1), nA; nA.Parent = aV; end; else local pri = anims[1]; local nA = INew("Animation"); nA.Name, nA.AnimationId, nA.Parent = sN[cat] or (cat:sub(1, 1):upper() .. cat:sub(2) .. "Anim"), pri.id, aV; end; end; end;
+        end);
+        return ok == true;
+    end;
+    function AnimationEngine.restart(mC) local a = ff(mC, vz); if a then pc(function() a.Enabled = false; a.Enabled = true; end); end; ensureHumanoidStateAndMotors(mC); end;
+    function AnimationEngine.stopTracks(mC) local hm = fcc(mC, v1); if hm then local an = fcc(hm, "Animator"); if an then pc(function() for _, tr in ipairs(an:GetPlayingAnimationTracks()) do tr:Stop(0); end; end) end; end; end;
+end;
+
+local PoseMirror = {active = false, target = nil, pairsList = {}, bind = "CopierPoseMirror"};
+function PoseMirror.stop() pc(function() RS:UnbindFromRenderStep(PoseMirror.bind) end); PoseMirror.active, PoseMirror.target, PoseMirror.pairsList = false, nil, {}; end;
+function PoseMirror.start(tC)
+    local mC = lp.Character; if not mC or not tC or tC == mC then return end; PoseMirror.stop(); local list = {};
+    for _, d in ipairs(gD(tC)) do if d:IsA(va) then local myM = mC:FindFirstChild(d.Name, true); if myM and myM:IsA(va) then table.insert(list, {t = d, m = myM}) end; end; end;
+    if #list == 0 then return end; PoseMirror.target, PoseMirror.pairsList, PoseMirror.active = tC, list, true;
+    RS:BindToRenderStep(PoseMirror.bind, E.RenderPriority.Character.Value + 1, function()
+        if not IA() or not PoseMirror.active then PoseMirror.stop(); return end; local mc = lp.Character; if not mc or not mc.Parent or not PoseMirror.target or not PoseMirror.target.Parent then PoseMirror.stop(); return end;
+        local hm = fcc(mc, v1); if hm and hm.Health <= 0 then PoseMirror.stop(); return end; for _, pr in ipairs(PoseMirror.pairsList) do if pr.t.Parent and pr.m.Parent then pr.m.Transform = pr.t.Transform end; end;
+    end);
+end;
+
+local CloneEngine = {active = false, dummy = nil, hiddenParts = {}, conn = nil};
+function CloneEngine.stop()
+    if CloneEngine.conn then CloneEngine.conn:Disconnect(); CloneEngine.conn = nil end; if CloneEngine.dummy then des(CloneEngine.dummy); CloneEngine.dummy = nil end;
+    local ch = lp.Character; if ch then for p, oT in pairs(CloneEngine.hiddenParts) do if p and p.Parent then p.Transparency = oT end; end; ensureHumanoidStateAndMotors(ch); end;
+    table.clear(CloneEngine.hiddenParts); CloneEngine.active = false;
+end;
+function CloneEngine.hideRealParts(ch)
+    if not ch then return end;
+    for _, d in ipairs(gC(ch)) do
+        if not (d:IsA("Tool") or d:FindFirstAncestorOfClass("Tool")) then
+            if d:IsA(v4) and d.Name ~= v2 and S.BD[d.Name] then if CloneEngine.hiddenParts[d] == nil then CloneEngine.hiddenParts[d] = d.Transparency end; d.Transparency = 1;
+            elseif d:IsA(v5) then for _, sub in ipairs(gD(d)) do if sub:IsA(v4) or sub:IsA(v8) then if CloneEngine.hiddenParts[sub] == nil then CloneEngine.hiddenParts[sub] = sub.Transparency end; sub.Transparency = 1; end; end; end;
+        end;
+    end;
+    local mH = ff(ch, v3);
+    if mH then if CloneEngine.hiddenParts[mH] == nil then CloneEngine.hiddenParts[mH] = mH.Transparency end; mH.Transparency = 1; local f = ff(mH, "face") or fcc(mH, v8); if f then if CloneEngine.hiddenParts[f] == nil then CloneEngine.hiddenParts[f] = f.Transparency end; f.Transparency = 1; end; end;
+end;
+function CloneEngine.start(tUID)
+    CloneEngine.stop(); local ch = lp.Character; if not ch or not fcc(ch, v1) or not ff(ch, v2) then return false end;
+    local rt = F.gTRT(ch); local rD, ds = F.mD(tUID, rt); if not rD then return false end;
+    local dm = cln(rD); dm.Name = "CloneVisual"; makeArchivable(dm);
+    for _, d in ipairs(gD(dm)) do
+        if d:IsA("Script") or d:IsA("LocalScript") or d:IsA("BillboardGui") or d:IsA("SurfaceGui") then des(d);
+        elseif d:IsA(v4) then d.CanCollide, d.CanTouch, d.CanQuery, d.Massless, d.Anchored, d.CastShadow = false, false, false, true, true, false; d.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0); pc(function() d.CollisionGroup = "CopierCloneGroup" end); end;
+    end;
+    local dH = fcc(dm, v1);
+    if dH then
+        dH.DisplayDistanceType, dH.HealthDisplayType, dH.BreakJointsOnDeath, dH.RequiresNeck = Enum.HumanoidDisplayDistanceType.None, Enum.HumanoidHealthDisplayType.AlwaysOff, false, false;
+        pc(function() dH.EvaluateStateMachine = false end); pc(function() for _, st in ipairs(Enum.HumanoidStateType:GetEnumItems()) do if st ~= Enum.HumanoidStateType.None then dH:SetStateEnabled(st, false) end; end; dH:ChangeState(Enum.HumanoidStateType.None); end);
+    end;
+    local dR, mR = ff(dm, v2) or ff(dm, "Torso") or ff(dm, v3), ff(ch, v2); if not dR or not mR then des(dm); return false end;
+    for _, p1 in ipairs(gD(ch)) do if p1:IsA(v4) then for _, p2 in ipairs(gD(dm)) do if p2:IsA(v4) then local nc = INew("NoCollisionConstraint"); nc.Part0, nc.Part1, nc.Parent = p1, p2, p1; end; end; end; end;
+    local ctr = workspace:FindFirstChild("CopierCloneContainer"); if not ctr then ctr = INew("Folder"); ctr.Name, ctr.Parent = "CopierCloneContainer", workspace; end;
+    dm.Parent, CloneEngine.dummy = ctr, dm; CloneEngine.hideRealParts(ch); ensureHumanoidStateAndMotors(ch); pc(function() F.cNA(ch, tUID, ds) end);
+    CloneEngine.conn = RS.RenderStepped:Connect(function()
+        if not IA() or not CloneEngine.active or not dm or not dm.Parent or not ch or not ch.Parent then return end; local hm = fcc(ch, v1); if hm and hm.Health <= 0 then CloneEngine.stop(); return end;
+        local cR = ff(ch, v2); if cR and dR then dR.CFrame = cR.CFrame end; for _, p in ipairs(gD(dm)) do if p:IsA(v4) then p.CanCollide, p.CanTouch, p.CanQuery, p.Massless = false, false, false, true; end; end;
+        CloneEngine.hideRealParts(ch); for _, mM in ipairs(gD(ch)) do if mM:IsA(va) and not mM:IsDescendantOf(dm) then local dM = dm:FindFirstChild(mM.Name, true); if dM and dM:IsA(va) then dM.Transform = mM.Transform end; end; end;
+    end);
+    CloneEngine.active, S.isCopied, S.mode = true, true, "clone"; return true;
+end;
+
+local function ensureR6Attachments(ch)
+    local hd, tr = ff(ch, "Head"), ff(ch, "Torso");
+    if hd then for n, cf in pairs({HatAttachment = CF(0, 0.5, 0), HairAttachment = CF(0, 0.6, 0), FaceFrontAttachment = CF(0, 0, -0.5), FaceCenterAttachment = CF(0, 0, 0)}) do if not ff(hd, n) then local a = INew(vb, hd); a.Name, a.CFrame = n, cf; end; end; end;
+    if tr then for n, cf in pairs({NeckAttachment = CF(0, 1, 0), BodyBackAttachment = CF(0, 0, 0.5), BodyFrontAttachment = CF(0, 0, -0.5), LeftShoulderAttachment = CF(-1, 0.5, 0), RightShoulderAttachment = CF(1, 0.5, 0), WaistCenterAttachment = CF(0, -1, 0), WaistBackAttachment = CF(0, -1, 0.5)}) do if not ff(tr, n) then local a = INew(vb, tr); a.Name, a.CFrame = n, cf; end; end; end;
+    ensureGripAttachments(ch);
+end;
+
+local cM, sG = false, INew("ScreenGui"); pc(function() sG.Parent = gUI() end); if not sG.Parent then pc(function() sG.Parent = CG end) end;
+if sG.Parent then
+    sG.Name, sG.ResetOnSpawn = "StartupP", false; local f = INew("Frame", sG); f.Size, f.AnchorPoint, f.Position, f.BackgroundColor3 = U2(0, math.floor(300 * mobileScale), 0, math.floor(150 * mobileScale)), V2(0.5, 0.5), U2(0.5, 0, 0.5, 0), C3(0.1, 0.1, 0.1); INew("UICorner", f).CornerRadius = UDim.new(0, 8);
+    local tl = INew(vc, f); tl.Size, tl.Text, tl.TextColor3, tl.BackgroundTransparency, tl.Font, tl.TextSize = U2(1, 0, 0, math.floor(40 * mobileScale)), "Select Animation Mode", C3(1, 1, 1), 1, E.Font.GothamBold, math.floor(16 * mobileScale);
+    local b1 = INew(vr, f); b1.Size, b1.Position, b1.BackgroundColor3, b1.TextColor3, b1.Font, b1.Text, b1.TextSize = U2(0.8, 0, 0, math.floor(35 * mobileScale)), U2(0.1, 0, 0, math.floor(50 * mobileScale)), C3(0.3, 0.1, 0.1), C3(1, 1, 1), E.Font.GothamBold, "[1] Option 1 (F=False)", math.floor(13 * mobileScale); INew("UICorner", b1).CornerRadius = UDim.new(0, 4);
+    local b2 = INew(vr, f); b2.Size, b2.Position, b2.BackgroundColor3, b2.TextColor3, b2.Font, b2.Text, b2.TextSize = U2(0.8, 0, 0, math.floor(35 * mobileScale)), U2(0.1, 0, 0, math.floor(95 * mobileScale)), C3(0.1, 0.3, 0.1), C3(1, 1, 1), E.Font.GothamBold, "[2] Option 2 (F=True)", math.floor(13 * mobileScale); INew("UICorner", b2).CornerRadius = UDim.new(0, 4);
+    local c1 = b1.MouseButton1Click:Connect(function() Cfg.F, cM = false, true end); local c2 = b2.MouseButton1Click:Connect(function() Cfg.F, cM = true, true end); repeat tw(0.1) until cM; c1:Disconnect(); c2:Disconnect(); cM = false;
+    tl.Text, b1.Text, b1.BackgroundColor3, b2.Text, b2.BackgroundColor3 = "Auto Hide Head?", "[1] Yes (Auto)", C3(0.1, 0.3, 0.1), "[2] No (Manual)", C3(0.3, 0.1, 0.1);
+    c1 = b1.MouseButton1Click:Connect(function() Cfg.AutoHideHead, _G.CHH, cM = true, true, true end); c2 = b2.MouseButton1Click:Connect(function() Cfg.AutoHideHead, _G.CHH, cM = false, false, true end); repeat tw(0.1) until cM; c1:Disconnect(); c2:Disconnect(); cM = false;
+    tl.TextScaled, tl.Text, b1.Text, b1.BackgroundColor3, b2.Text, b2.BackgroundColor3 = true, "Replace head dynamically?", "[1] Yes", C3(0.1, 0.3, 0.1), "[2] No (Keep Mine)", C3(0.3, 0.1, 0.1);
+    c1 = b1.MouseButton1Click:Connect(function() Cfg.KeepOwnHead, cM = false, true end); c2 = b2.MouseButton1Click:Connect(function() Cfg.KeepOwnHead, cM = true, true end); repeat tw(0.1) until cM; c1:Disconnect(); c2:Disconnect(); cM = false;
+    tl.Text, b1.Text, b1.BackgroundColor3, b2.Text, b2.BackgroundColor3 = "Auto-reduce graphics for lag fix?", "[1] Yes (Level 1)", C3(0.1, 0.3, 0.1), "[2] No (Keep Default)", C3(0.3, 0.1, 0.1);
+    c1 = b1.MouseButton1Click:Connect(function() Cfg.ReduceGraphics, cM = true, true end); c2 = b2.MouseButton1Click:Connect(function() Cfg.ReduceGraphics, cM = false, true end); repeat tw(0.1) until cM; c1:Disconnect(); c2:Disconnect(); cM = false; des(sG); if Cfg.ReduceGraphics then applyGraphicsReduction() end;
+end;
+
+local function killUI() pc(function() local pg = gUI(); if pg then for _, n in ipairs({"CMC", "CCUI", "CTUI", "C012UI", "HelpUI", vo}) do local x = ff(pg, n); if x then des(x) end; end; _G.CCM = false; end; end); end;
+killUI(); _G.CTID, _G.CHH, _G.CCM = nil, _G.CHH or false, false;
+
+local function isHI(i)
+    if not i or not i.Parent or isLayeredClothing(i) then return false end; local n, nL = i.Name, i.Name:lower();
+    if S.BD[n] or n:find("Arm") or n:find("Leg") or n:find("Torso") or n:find("Proxy_") or n == v2 then if nL ~= v3:lower() then return false end; end;
+    if nL == v3:lower() or nL == "copierfakehead" or nL == "copier2dface" or nL:find("dynamichead") or nL:find("headmesh") or i:IsA(vl) then return true; end;
+    local hd = ff(i.Parent, v3) or (i.Parent and i.Parent.Name == v3 and i.Parent); if i.Parent == hd or (i:IsA(v4) and i:IsDescendantOf(hd)) then return true end;
+    if i:IsA(v5) then
+        local ok, atType = pc(function() return i.AccessoryType end);
+        if ok and atType then
+            if atType == E.AccessoryType.Hair or atType == E.AccessoryType.Hat or atType == E.AccessoryType.Face or atType == E.AccessoryType.Head or atType == E.AccessoryType.Eyewear then return true;
+            elseif atType == E.AccessoryType.Neck or atType == E.AccessoryType.Shoulder or atType == E.AccessoryType.Back or atType == E.AccessoryType.Waist or atType == E.AccessoryType.Jacket or atType == E.AccessoryType.Sweater or atType == E.AccessoryType.Pants or atType == E.AccessoryType.Shorts or atType == E.AccessoryType.Shirt or atType == E.AccessoryType.TShirt or atType == E.AccessoryType.Dress or atType == E.AccessoryType.Skirt then return false; end;
+        end;
+        local h = ff(i, vH) or fca(i, v4);
+        if h then local at = fcc(h, vb); if at then local anL = at.Name:lower(); if anL:find("hair") or anL:find("hat") or anL:find("face") or anL:find("head") or anL:find("eyewear") then return true; elseif anL:find("neck") or anL:find("shoulder") or anL:find("back") or anL:find("waist") or anL:find("grip") or anL:find("hand") then return false; end; end; end;
+        if nL:find("hair") or nL:find("hat") or nL:find("head") or nL:find("face") or nL:find("glasses") or nL:find("mask") or nL:find("visor") or nL:find("eyewear") or nL:find("beard") or nL:find("mustache") or nL:find("horn") or nL:find("crown") or nL:find("cap") or nL:find("tiara") or nL:find("headband") or nL:find("wig") or nL:find("goggles") or nL:find("helmet") or nL:find("bonnet") or nL:find("hood") or nL:find("beret") or nL:find("bandanna") then return true; end;
+    end;
+    if i:IsA(v4) then
+        for _, w in ipairs(gC(i)) do if w:IsA(vs) or w:IsA(vt) or w:IsA(va) then local p0, p1 = w.Part0, w.Part1; if (p0 and (p0.Name == v3 or p0.Name == "CopierFakeHead")) or (p1 and (p1.Name == v3 or p1.Name == "CopierFakeHead")) then return true; end; end; end;
+        local an = cAtt[i] or (fcc(i, vb) and fcc(i, vb).Name); if an then local anL = an:lower(); if anL:find("hair") or anL:find("hat") or anL:find("face") or anL:find("head") or anL:find("eyewear") then return true end; end;
+        if nL:find("hair") or nL:find("hat") or nL:find("head") or nL:find("face") or nL:find("glasses") or nL:find("mask") or nL:find("visor") or nL:find("eyewear") or nL:find("beard") or nL:find("mustache") or nL:find("horn") or nL:find("crown") or nL:find("cap") or nL:find("tiara") or nL:find("headband") or nL:find("wig") or nL:find("goggles") or nL:find("helmet") then return true; end;
+    end;
+    return false;
+end;
+
+local function gTN() return S.tN ~= "" and S.tN or S.hN end;
+local function gTD() local tn = gTN(); return S.tD ~= "" and S.tD or tn end;
+
+local function gUID(nm, silent)
+    if not nm or nm == "" then return nil, nil, nil end; local tU = tonumber(nm); if tU then return tU, tostring(nm), F.rD(tU, tostring(nm)) end; local tL = nm:lower();
+    for _, p in ipairs(Plrs:GetPlayers()) do local pN, pD = p.Name, p.DisplayName; if pN:lower() == tL or pD:lower() == tL then return p.UserId, pN, pD end; end;
+    for _, p in ipairs(Plrs:GetPlayers()) do local pN, pD = p.Name, p.DisplayName; if pN:lower():sub(1, #tL) == tL or pD:lower():sub(1, #tL) == tL then return p.UserId, pN, pD end; end;
+    local s = pc(function() tU = Plrs:GetUserIdFromNameAsync(nm) end); if s and tU then return tU, nm, F.rD(tU, nm) end;
+    if not silent and not S.cDs then pc(function() SG:SetCore(vg, {Title = "Err", Text = "Player not found!", Duration = 4}) end) end;
+    return nil, nil, nil;
+end;
+
+local function restoreDefaultAvatar()
+    killUI(); PoseMirror.stop(); CloneEngine.stop();
+    Cfg.A, S.tN, S.hN, S.tD, S.cU, S.cDs, S.isCopied, S.mode, S.appliedThisLife, _G.CTID = "", "", "", "", nil, nil, false, "copy", false, nil;
+    clearBundleCache(); if S.cD then des(S.cD); S.cD = nil end; local ch = lp.Character; if ch then local hm = fcc(ch, v1); if hm then hm.Health = 0 end; end;
+    pc(function() SG:SetCore(vg, {Title = "Restored", Text = "Avatar restored to default!", Duration = 5}) end);
+end;
+
+local function pCmd(m)
+    local c, a = m:match("^[!/](%w+)%s*(.*)");
+    if c then
+        c = c:lower();
+        if c == "clone" then killUI(); if a ~= "" then local tU, aN, aD = gUID(a); if tU then S.cU, S.tN, S.tD = tU, aN, aD; local ok = CloneEngine.start(tU); if ok then pc(function() SG:SetCore(vg, {Title = vf, Text = "Cloned Visuals: " .. tostring(aD or aN), Duration = 4}) end); else pc(function() SG:SetCore(vg, {Title = "Err", Text = "Failed to clone target.", Duration = 4}) end); end; end; end; return true;
+        elseif c == "012" or c == "forever" or c == "copy" then killUI(); if a ~= "" then S.mode = "copy"; CloneEngine.stop(); local ok = F.dC(a, false); if not ok then pc(function() SG:SetCore(vg, {Title = "Err", Text = "Failed to copy avatar.", Duration = 5}) end); end; else F.u012(); end; return true;
+        elseif c == "copyemote" or c == "emote" then if a ~= "" then local tU, aN, aD = gUID(a); if tU then local tp = Plrs:GetPlayerByUserId(tU); local tChar = tp and tp.Character; local tHum = tChar and fcc(tChar, v1); local myHum = lp.Character and fcc(lp.Character, v1); if myHum then local desc; if tHum then pc(function() desc = tHum:GetAppliedDescription() end) end; if not desc then pc(function() desc = Plrs:GetHumanoidDescriptionFromUserId(tU) end) end; if desc then pc(function() myHum:SetEmotes(desc:GetEmotes()); myHum:SetEquippedEmotes(desc:GetEquippedEmotes()); end); pc(function() SG:SetCore(vg, {Title = vf, Text = "Copied Emotes from: " .. tostring(aD or aN), Duration = 4}) end); end; end; end; end; return true;
+        elseif c == "savecurrent" or c == "saveown" then
+            local ds = F.captureCurrent100();
+            if ds then S.cDs, S.cU, S.tN, S.tD = ds, lp.UserId, lp.Name, lp.DisplayName; SaveSys.save(a ~= "" and a or "own_100", true); end; return true;
+        elseif c == "applyown" or c == "own" or c == "current" then
+            local ds = F.captureCurrent100();
+            if ds then
+                S.cDs, S.cU, S.tN, S.tD, S.mode = ds, lp.UserId, lp.Name, lp.DisplayName, "copy"; CloneEngine.stop();
+                F.dC(tostring(lp.UserId), false, nil, true);
+                pc(function() SG:SetCore(vg, {Title = vf, Text = "Applied 100% current worn avatar!", Duration = 4}) end);
+            end; return true;
+        elseif c == "save" then SaveSys.save(a, true); return true;
+        elseif c == "saveanimation" or c == "saveanim" then SaveSys.saveAnimation(a); return true;
+        elseif c == "saves" then SaveSys.list(); return true;
+        elseif c == "removesave" or c == "removesaves" then SaveSys.remove(a); return true;
+        elseif c == "removeallslot" or c == "removeallslots" then SaveSys.removeAllAvatarSlots(); return true;
+        elseif c == "changer" or c == "changerclone" then
+            killUI(); local arg1, arg2 = a:match("^(%S+)%s*(%S*)$"); if not arg1 or arg1 == "" then pc(function() SG:SetCore(vg, {Title = "Err", Text = "Specify a save slot!", Duration = 4}) end); return true; end;
+            local avSlot = (arg1:lower() ~= "none" and arg1:lower() ~= "-" and arg1:lower() ~= "_") and arg1:lower() or nil; local anSlot = (arg2 ~= "" and arg2:lower() ~= "none" and arg2:lower() ~= "-" and arg2:lower() ~= "_") and arg2:lower() or nil;
+            local saves = SaveSys.load(); local avData, anData = avSlot and saves[avSlot], anSlot and saves[anSlot];
+            if avSlot and not avData then pc(function() SG:SetCore(vg, {Title = "Err", Text = "Slot not found: " .. avSlot, Duration = 4}) end); return true; end;
+            if anSlot and not anData then pc(function() SG:SetCore(vg, {Title = "Err", Text = "Anim slot not found: " .. anSlot, Duration = 4}) end); return true; end;
+            local targetDesc, targetUid, targetTN, targetTD = nil, S.cU or lp.UserId, S.tN, S.tD;
+            if avData then targetUid, targetTN, targetTD = avData.uid or targetUid, avData.tN or targetTN, avData.tD or targetTD; if avData.desc then targetDesc = deserializeDescription(avData.desc) end; if avData.animData and targetDesc then for aK, aV in pairs(avData.animData) do pc(function() targetDesc[aK] = aV end); end; end; end;
+            if anData then local aMap = anData.animData or (anData.desc and {ClimbAnimation = anData.desc.ClimbAnimation, FallAnimation = anData.desc.FallAnimation, IdleAnimation = anData.desc.IdleAnimation, JumpAnimation = anData.desc.JumpAnimation, RunAnimation = anData.desc.RunAnimation, SwimAnimation = anData.desc.SwimAnimation, WalkAnimation = anData.desc.WalkAnimation}); if aMap and targetDesc then for aK, aV in pairs(aMap) do pc(function() targetDesc[aK] = aV end); end; end; end;
+            if not targetDesc then local hum = lp.Character and fcc(lp.Character, v1); targetDesc = S.cDs or (hum and pc(function() return hum:GetAppliedDescription() end) and hum:GetAppliedDescription()) or INew("HumanoidDescription"); end;
+            S.cU, S.tN, S.tD, S.cDs = targetUid, targetTN or lp.Name, targetTD or lp.DisplayName, targetDesc; if S.cD then des(S.cD); S.cD = nil end;
+            if avSlot then saves["_last_active"] = avSlot; _G.CopierSaves = saves; if type(writefile) == "function" then pc(function() writefile(SaveSys.file, HS:JSONEncode(saves)) end) end; F.writeAutoExecScript(); end;
+            if c == "changerclone" then CloneEngine.start(targetUid); else S.mode = "copy"; CloneEngine.stop(); F.dC(tostring(targetUid), false, nil, true); end;
+            pc(function() SG:SetCore(vg, {Title = vf, Text = "Applied Avatar persistent slot: " .. (avSlot or anSlot), Duration = 4}) end); return true;
+        elseif c == "restore" or c == "reset" then restoreDefaultAvatar(); return true;
+        elseif c == "mirror" then
+            local tp = S.cU and Plrs:GetPlayerByUserId(S.cU);
+            if PoseMirror.active then Cfg.MirrorPose = false; PoseMirror.stop(); pc(function() SG:SetCore(vg, {Title = vf, Text = "Pose Mirror: OFF", Duration = 3}) end);
+            elseif tp and tp.Character then Cfg.MirrorPose = true; PoseMirror.start(tp.Character); pc(function() SG:SetCore(vg, {Title = vf, Text = "Pose Mirror: ON (live pose follow)", Duration = 3}) end);
+            else pc(function() SG:SetCore(vg, {Title = vf, Text = "Pose Mirror: target is offline", Duration = 3}) end); end; return true;
+        elseif c == "stop" then _G.CEID = _G.CEID + 1; _G.cE_HardLocked = false; PoseMirror.stop(); CloneEngine.stop(); killUI(); return true; end;
+    end;
+    return false;
+end;
+
+RC(lp.Chatted:Connect(function(m) pCmd(m) end));
+
+F.u012 = function()
+    local pg = gUI(); local u = ff(pg, "C012UI"); if u then des(u); return end;
+    local sg = INew("ScreenGui", pg); sg.Name, sg.ResetOnSpawn = "C012UI", false;
+    local f = INew("Frame", sg); f.Size, f.AnchorPoint, f.Position, f.BackgroundColor3 = U2(0, math.floor(340 * mobileScale), 0, math.floor(140 * mobileScale)), V2(0.5, 0.5), U2(0.5, 0, 0.5, 0), C3(0.08, 0.08, 0.12); INew("UICorner", f).CornerRadius = UDim.new(0, 8); INew("UIStroke", f).Color = C3(0, 0.8, 1);
+    local tl = INew(vc, f); tl.Size, tl.BackgroundTransparency, tl.Text, tl.TextColor3, tl.Font, tl.TextSize = U2(1, 0, 0, math.floor(30 * mobileScale)), 1, "012 Copier", C3(0, 0.8, 1), E.Font.GothamBold, math.floor(14 * mobileScale);
+    local tb = INew(vq, f); tb.Size, tb.Position, tb.BackgroundColor3, tb.TextColor3, tb.Font, tb.TextSize, tb.PlaceholderText, tb.Text = U2(0.9, 0, 0, math.floor(32 * mobileScale)), U2(0.05, 0, 0, math.floor(52 * mobileScale)), C3(0.04, 0.04, 0.06), C3(1, 1, 1), E.Font.GothamBold, math.floor(13 * mobileScale), (isMobile and "Tap Username or ID..." or "User..."), ""; INew("UICorner", tb).CornerRadius = UDim.new(0, 4);
+    local bA = INew(vr, f); bA.Size, bA.Position, bA.BackgroundColor3, bA.TextColor3, bA.Font, bA.TextSize, bA.Text = U2(0.42, 0, 0, math.floor(30 * mobileScale)), U2(0.05, 0, 0, math.floor(95 * mobileScale)), C3(0, 0.6, 0.8), C3(1, 1, 1), E.Font.GothamBold, math.floor(13 * mobileScale), "COPY"; INew("UICorner", bA).CornerRadius = UDim.new(0, 4);
+    local bC = INew(vr, f); bC.Size, bC.Position, bC.BackgroundColor3, bC.TextColor3, bC.Font, bC.TextSize, bC.Text = U2(0.42, 0, 0, math.floor(30 * mobileScale)), U2(0.53, 0, 0, math.floor(95 * mobileScale)), C3(0.2, 0.2, 0.25), C3(1, 1, 1), E.Font.GothamBold, math.floor(13 * mobileScale), "CLOSE"; INew("UICorner", bC).CornerRadius = UDim.new(0, 4); bC.MouseButton1Click:Connect(function() des(sg) end);
+    local function run() local t = tb.Text; if t ~= "" then killUI(); S.mode = "copy"; CloneEngine.stop(); F.dC(t, false); end; end;
+    bA.MouseButton1Click:Connect(run); tb.FocusLost:Connect(function(e) if e then run() end end); tw(); tb:CaptureFocus();
+end;
+
+F.tCUI = function()
+    local pg = gUI(); local u = ff(pg, vo); if u then des(u); return end;
+    local sg = INew("ScreenGui", pg); sg.Name, sg.ResetOnSpawn = vo, false;
+    local tb = INew(vq, sg); tb.Size, tb.AnchorPoint, tb.Position, tb.BackgroundColor3, tb.BackgroundTransparency, tb.TextColor3, tb.Font, tb.TextSize = U2(0, math.floor(360 * mobileScale), 0, math.floor(45 * mobileScale)), V2(0.5, 1), U2(0.5, 0, 1, math.floor(-80 * mobileScale)), C3(0, 0, 0), 0.3, C3(1, 1, 1), E.Font.GothamBold, math.floor(16 * mobileScale);
+    tb.PlaceholderText, tb.Text, tb.ClearTextOnFocus = (isMobile and "Tap to enter command or username..." or "Type username or command..."), "", true; INew("UICorner", tb).CornerRadius = UDim.new(0, 8); INew("UIStroke", tb).Color = C3(0, 1, 0.5);
+    tb.FocusLost:Connect(function(e) if e and tb.Text ~= "" then if not pCmd(tb.Text) then S.mode = "copy"; CloneEngine.stop(); F.dC(tb.Text, false); end; end; des(sg); end); tw(); tb:CaptureFocus();
+end;
+
+F.tSUI = function()
+    _G.CSUI = not _G.CSUI; local pg = gUI();
+    if pg and ff(pg, "CMC") then
+        local c = ff(pg.CMC, "BtnC");
+        if c then
+            for _, n in ipairs({"BtnE", "BtnH", "TInp", "BtnA", "BtnChat"}) do local b = ff(c, n); if b then b.Visible = _G.CSUI end; end;
+            local bH, bN = ff(c, "BtnHide"), ff(c, "BtnNuke"); if bH then bH.Text = _G.CSUI and "HIDE" or "SHOW" end; if bN then bN.Visible = not _G.CSUI end;
+        end;
+    end;
+    if not _G.CSUI then if ff(pg, "CCUI") then des(pg.CCUI); _G.CCM = false end; if ff(pg, "C012UI") then des(pg.C012UI) end; if ff(pg, vo) then des(pg[vo]) end; end;
+end;
+
+F.tGUI = function()
+    _G.CGUI = not _G.CGUI; local pg, GS = gUI(), g("GuiService");
+    local function sLC(p, st)
+        if not p then return end;
+        for _, v in ipairs(gC(p)) do
+            if v:IsA("LayerCollector") and not string.find(v.Name, "Copier") and v.Name ~= "CMC" and v.Name ~= "CCUI" and v.Name ~= "C012UI" and v.Name ~= vo then
+                if not st then if cOE[v] == nil then cOE[v] = v.Enabled end; v.Enabled = false; else if cOE[v] ~= nil then v.Enabled = cOE[v]; cOE[v] = nil else v.Enabled = true end; end;
+            end;
+        end;
+    end;
+    if not _G.CGUI then pc(function() _G.CCS = SG:GetCoreGuiEnabled(E.CoreGuiType.Chat); SG:SetCoreGuiEnabled(E.CoreGuiType.All, false); end); pc(function() GS:SetMenuIsOpen(false) end); pc(function() sLC(pg, false) end);
+    else pc(function() SG:SetCoreGuiEnabled(E.CoreGuiType.All, true); if _G.CCS ~= nil then SG:SetCoreGuiEnabled(E.CoreGuiType.Chat, _G.CCS) end; SG:SetCoreGuiEnabled(E.CoreGuiType.Backpack, true); end); pc(function() sLC(pg, true) end); end;
+end;
+
+local function mBtn(t) local b = INew(vr); b.Text, b.BackgroundColor3, b.TextColor3, b.Font, b.TextSize = t, C3(0.2, 0.2, 0.2), C3(1, 1, 1), E.Font.GothamBold, math.floor(12 * mobileScale); INew("UICorner", b).CornerRadius = UDim.new(0, 4); return b; end;
+
+local function mRow(f, y, lt, k, s, cb)
+    local l = INew(vc, f); l.Position, l.Size, l.Text, l.TextColor3, l.BackgroundTransparency, l.Font, l.TextSize = U2(0, 10, 0, math.floor(y * mobileScale)), U2(0, math.floor(60 * mobileScale), 0, math.floor(30 * mobileScale)), lt, C3(1, 1, 1), 1, E.Font.GothamBold, math.floor(13 * mobileScale);
+    local b1 = mBtn("-"); b1.Parent, b1.Position, b1.Size = f, U2(0, math.floor(80 * mobileScale), 0, math.floor((y + 5) * mobileScale)), U2(0, math.floor(30 * mobileScale), 0, math.floor(20 * mobileScale));
+    local v = INew(vc, f); v.Position, v.Size, v.Name, v.Text, v.TextColor3, v.BackgroundTransparency, v.TextSize = U2(0, math.floor(115 * mobileScale), 0, math.floor(y * mobileScale)), U2(0, math.floor(40 * mobileScale), 0, math.floor(30 * mobileScale)), k .. "_Val", string.format("%.2f", USs[k] or 1), C3(1, 1, 1), 1, math.floor(13 * mobileScale);
+    local b2 = mBtn("+"); b2.Parent, b2.Position, b2.Size = f, U2(0, math.floor(160 * mobileScale), 0, math.floor((y + 5) * mobileScale)), U2(0, math.floor(30 * mobileScale), 0, math.floor(20 * mobileScale));
+    b1.MouseButton1Click:Connect(function() USs[k] = (USs[k] or 0) - s; v.Text = string.format("%.2f", USs[k]); if cb then cb() end; end);
+    b2.MouseButton1Click:Connect(function() USs[k] = (USs[k] or 0) + s; v.Text = string.format("%.2f", USs[k]); if cb then cb() end; end);
+end;
+
+F.aC = function()
+    local ch = lp.Character; if not ch then return end; local cS, cO = USs.s or 1, CF(USs.x or 0, USs.y or 0, USs.z or 0);
+    for _, a in ipairs(gC(ch)) do
+        if cCI[a] and not isHI(a) then
+            local h = (a:IsA(v5) and ff(a, vH)) or (a:IsA(v4) and a);
+            if h and not isHI(h) then
+                local m = fca(h, vj) or fca(h, vk);
+                if m then if not cOS[m] then cOS[m] = m.Scale end; if cOS[m] then m.Scale = cOS[m] * cS end; elseif h:IsA(v9) then if not cOS[h] then cOS[h] = h.Size end; if cOS[h] then h.Size = cOS[h] * cS end; end;
+                local w = ff(h, "AccessoryWeld") or ff(h, "AccWeld"); if w and w:IsA(vs) then if not cOC0[w] then cOC0[w] = w.C0 end; if cOC0[w] then w.C0 = cOC0[w] * cO end; end;
+            end;
+        end;
+    end;
+end;
+
+F.TC = function()
+    local pg = gUI(); if ff(pg, "CCUI") then des(pg.CCUI); _G.CCM = false; return end;
+    _G.CCM = true; local sg = INew("ScreenGui", pg); sg.Name, sg.ResetOnSpawn = "CCUI", false;
+    local f = INew("Frame", sg); f.Size, f.Position, f.BackgroundColor3 = U2(0, math.floor(240 * mobileScale), 0, math.floor(220 * mobileScale)), U2(0.5, math.floor(-120 * mobileScale), 0.5, math.floor(-110 * mobileScale)), C3(0.1, 0.1, 0.1); INew("UICorner", f).CornerRadius = UDim.new(0, 8);
+    local tl = INew(vc, f); tl.Size, tl.BackgroundTransparency, tl.Text, tl.TextColor3, tl.Font, tl.TextSize = U2(1, 0, 0, math.floor(30 * mobileScale)), 1, "Adjust 3D", C3(1, 1, 1), E.Font.GothamBold, math.floor(14 * mobileScale);
+    local bc = INew(vr, f); bc.Size, bc.Position, bc.Text, bc.TextColor3, bc.BackgroundTransparency, bc.TextSize = U2(0, math.floor(30 * mobileScale), 0, math.floor(30 * mobileScale)), U2(1, math.floor(-30 * mobileScale), 0, 0), "X", C3(1, 0.3, 0.3), 1, math.floor(14 * mobileScale); bc.MouseButton1Click:Connect(function() des(sg); _G.CCM = false end);
+    mRow(f, 40, "X", "x", 0.1, F.aC); mRow(f, 80, "Y", "y", 0.1, F.aC); mRow(f, 120, "Z", "z", 0.1, F.aC); mRow(f, 160, "S", "s", 0.05, F.aC);
+end;
+
+F.sM = function()
+    local pg = gUI(); if ff(pg, "CMC") then return end;
+    local sg = INew("ScreenGui", pg); sg.Name, sg.ResetOnSpawn = "CMC", false;
+    local function sB(b) b.BackgroundColor3, b.BackgroundTransparency, b.TextColor3, b.Font, b.TextSize = C3(0, 0, 0), 0.5, C3(1, 1, 1), E.Font.GothamBold, math.floor(12 * mobileScale); INew("UICorner", b).CornerRadius = UDim.new(1, 0); INew("UIStroke", b).Color = C3(1, 1, 1); end;
+    local ct = INew("Frame", sg); ct.Name, ct.Size, ct.BackgroundTransparency = "BtnC", U2(1, 0, 1, 0), 1;
+    local function mk(n, x, y, w, h, t, v)
+        local sw, sh, sx, sy = math.floor(w * mobileScale), math.floor(h * mobileScale), math.floor(x * mobileScale), math.floor(y * mobileScale);
+        local b = INew(vr, ct); b.Name, b.AnchorPoint, b.Position, b.Size, b.Text, b.ZIndex, b.Visible = n, V2(0.5, 0.5), U2(1, sx, 1, sy), U2(0, sw, 0, sh), t, 10, v ~= false; sB(b); return b;
+    end;
+    local bE, bH, bC = mk("BtnE", -150, -100, 55, 55, "EDIT", _G.CSUI), mk("BtnH", -80, -100, 55, 55, "HEAD", _G.CSUI), mk("BtnChat", -10, -100, 55, 55, "CHAT", _G.CSUI); bC.TextColor3 = C3(0, 1, 0.5);
+    local bU = mk("BtnHide", -150, -170, 55, 55, _G.CSUI and "HIDE" or "SHOW", true);
+    local tB = INew(vq, ct); tB.Name, tB.AnchorPoint, tB.Position, tB.Size = "TInp", V2(0.5, 0.5), U2(1, math.floor(-115 * mobileScale), 1, math.floor(-240 * mobileScale)), U2(0, math.floor(125 * mobileScale), 0, math.floor(30 * mobileScale));
+    tB.PlaceholderText, tB.Text, tB.ZIndex, tB.Visible = (isMobile and "Tap Username..." or "User..."), (Cfg.A == "prevent" and "" or Cfg.A), 10, _G.CSUI; sB(tB);
+    local bA, bN = mk("BtnA", -205, -240, 55, 30, "APPLY", _G.CSUI), mk("BtnNuke", -80, -170, 55, 55, _G.CGUI and "UI OFF" or "UI ON", not _G.CSUI); bN.TextColor3, bN.TextSize = C3(1, 0.3, 0.3), math.floor(10 * mobileScale);
+    bU.MouseButton1Click:Connect(F.tSUI); bN.MouseButton1Click:Connect(function() F.tGUI(); bN.Text = _G.CGUI and "UI OFF" or "UI ON"; end);
+    bA.MouseButton1Click:Connect(function() if tB.Text ~= "" and tB.Text:lower() ~= "prevent" then killUI(); S.mode = "copy"; CloneEngine.stop(); F.dC(tB.Text, false); end; end);
+    bE.MouseButton1Click:Connect(F.TC); bH.MouseButton1Click:Connect(function() if not Cfg.AutoHideHead and _G.CTH then _G.CTH() end end); bC.MouseButton1Click:Connect(F.tCUI);
+end;
+ts(F.sM);
+
+local kS = {s = 0, t = 0};
+RC(UIS.InputBegan:Connect(function(i, p)
+    if p then return end; local k, now = i.KeyCode, os.clock();
+    if k == E.KeyCode.Zero or k == E.KeyCode.KeypadZero then kS.s, kS.t = 1, now;
+    elseif (k == E.KeyCode.One or k == E.KeyCode.KeypadOne) and kS.s == 1 and (now - kS.t < 1.5) then kS.s, kS.t = 2, now;
+    elseif (k == E.KeyCode.Two or k == E.KeyCode.KeypadTwo) and kS.s == 2 and (now - kS.t < 1.5) then kS.s = 0; F.u012(); return;
+    else if (now - kS.t > 1.5) then kS.s = 0 end; end;
+    if _G.CCM then
+        local m, s = false, 0.1;
+        if k == E.KeyCode.I then USs.y = (USs.y or 0) + s; m = true; elseif k == E.KeyCode.J then USs.y = (USs.y or 0) - s; m = true;
+        elseif k == E.KeyCode.O then USs.x = (USs.x or 0) - s; m = true; elseif k == E.KeyCode.P then USs.x = (USs.x or 0) + s; m = true; end;
+        if m then F.aC(); return end;
+    end;
+    if k == Cfg.I then F.TC() end; if k == Cfg.J then if not Cfg.AutoHideHead and _G.CTH then _G.CTH() end end;
+    if k == Cfg.L then F.tGUI() end; if k == Cfg.M then F.tCUI() end;
+    if k == E.KeyCode.B then
+        if PoseMirror.active then Cfg.MirrorPose = false; PoseMirror.stop(); pc(function() SG:SetCore(vg, {Title = vf, Text = "Pose Mirror: OFF", Duration = 3}) end);
+        else local tp = S.cU and Plrs:GetPlayerByUserId(S.cU); if tp and tp.Character and tp.Character.Parent then Cfg.MirrorPose = true; PoseMirror.start(tp.Character); pc(function() SG:SetCore(vg, {Title = vf, Text = "Pose Mirror: ON (live pose follow)", Duration = 3}) end); else pc(function() SG:SetCore(vg, {Title = vf, Text = "Pose Mirror: target is offline", Duration = 3}) end); end; end;
+    end;
+end));
+
+F.gTRT = function(ch) if not ch then return end; if ff(ch, "UpperTorso") then return eR15; elseif ff(ch, "Torso") then return eR6; else local hm = fcc(ch, v1); return hm and hm.RigType or nil; end; end;
+
+F.sD = function(ds, rt)
+    local d = cln(ds);
+    if rt == eR6 then
+        pc(function()
+            d.DepthScale, d.HeadScale, d.HeightScale, d.ProportionScale, d.WidthScale = 1, 1, 1, 1, 1; local as, sA = d:GetAccessories(true), {};
+            for _, a in ipairs(as) do local at = a.AccessoryType; if not a.IsLayered or at == E.AccessoryType.Hair or at == E.AccessoryType.Hat or at == E.AccessoryType.Face or at == E.AccessoryType.Head or at == E.AccessoryType.Eyewear or at == E.AccessoryType.Neck then table.insert(sA, a); end; end;
+            d:SetAccessories(sA, false);
+        end);
+    end;
+    if Cfg.KeepOwnHead then pc(function() local mH = lp.Character and fcc(lp.Character, v1); local mD = mH and mH:GetAppliedDescription(); if mD then d.Head = mD.Head end; end); end;
+    return d, false;
+end;
+
+F.mD = function(uid, rt)
+    local cK = tostring(uid) .. "_" .. tostring(rt);
+    if _bundle_cache[cK] and _bundle_cache[cK].m and _bundle_cache[cK].m.Parent then makeArchivable(_bundle_cache[cK].m); return _bundle_cache[cK].m:Clone(), _bundle_cache[cK].d; end;
+    clearBundleCache(); local d, ds;
+    
+    pc(function()
+        local uV = tonumber(uid) or uid; local tp = type(uV) == "number" and Plrs:GetPlayerByUserId(uV);
+        if tp and tp ~= lp and tp.Character and tp.Character:FindFirstChild("Humanoid") and tp.Character.Parent then
+            makeArchivable(tp.Character); d = tp.Character:Clone(); makeArchivable(d); ds = tp.Character.Humanoid:GetAppliedDescription();
+        end;
+    end);
+
+    if not d and S.cDs then ds = S.cDs; pc(function() local sD = F.sD(ds, rt); d = Plrs:CreateHumanoidModelFromDescription(sD, rt) or Plrs:CreateHumanoidModelFromDescription(ds, rt); end); end;
+    if not d then pc(function() local uV = tonumber(uid) or uid; ds = Plrs:GetHumanoidDescriptionFromUserId(uV); if ds then makeArchivable(ds); local sD = F.sD(ds, rt); d = Plrs:CreateHumanoidModelFromDescription(sD, rt) or Plrs:CreateHumanoidModelFromDescription(ds, rt); end; end); end;
+    
+    if not d or not fcc(d, v1) then
+        pc(function()
+            local uV = tonumber(uid) or uid; local url = "https://avatar.roblox.com/v1/users/" .. tostring(uV) .. "/avatar";
+            local req = (type(syn) == "table" and syn.request) or (type(http) == "table" and http.request) or request or http_request; local body;
+            if req then local res = req({Url = url, Method = "GET"}); if res and res.Body then body = res.Body end; elseif game.HttpGet then body = game:HttpGet(url); end;
+            if body then
+                local data = HS:JSONDecode(body);
+                if data and data.assets then
+                    ds = INew("HumanoidDescription"); makeArchivable(ds);
+                    for _, ast in ipairs(data.assets) do
+                        local aType, aId = ast.assetType and ast.assetType.name, ast.id;
+                        if aType == "Shirt" then ds.Shirt = aId; elseif aType == "Pants" then ds.Pants = aId; elseif aType == "GraphicTShirt" then ds.GraphicTShirt = aId; elseif aType == "Face" then ds.Face = aId; elseif aType == "Head" then ds.Head = aId; end;
+                    end;
+                    local sD = F.sD(ds, rt); d = Plrs:CreateHumanoidModelFromDescription(sD, rt);
+                end;
+            end;
+        end);
+    end;
+
+    if not d and lp.Character then pc(function() makeArchivable(lp.Character); d = lp.Character:Clone(); makeArchivable(d); local hum = fcc(d, v1); if hum then ds = hum:GetAppliedDescription() end; end); end;
+
+    if d then
+        makeArchivable(d); d.Parent = StorageFolder; local dh = ff(d, v3);
+        if dh then local dy = fcc(dh, vi) or fcc(dh, vl); if not dy and not dh:IsA(v9) and not fcc(dh, v8) then local f = INew(v8, dh); f.Name, f.Texture = "face", "rbxasset://textures/face.png"; end; end;
+        _bundle_cache[cK] = {m = d:Clone(), d = ds}; _bundle_cache[cK].m.Parent = StorageFolder;
+    end;
+    return d, ds;
+end;
+
+F.cNA = function(ch, uid, ds)
+    if not Cfg.F or not ch then return "disabled" end; local a = ff(ch, vz); if not a then return "no-animate" end;
+    local tp = (type(uid) == "number") and Plrs:GetPlayerByUserId(uid) or nil; local tChar = tp and tp.Character;
+    local isOnline = tChar and fcc(tChar, v1) and ff(tChar, vz) and tChar.Parent; AnimationEngine.stopTracks(ch); local status = "offline-failed";
+    if isOnline then AnimationEngine.copyFromCharacter(tChar, ch); if Cfg.MirrorPose then PoseMirror.start(tChar) end; AnimationEngine.restart(ch); status = "online";
+    else
+        PoseMirror.stop(); local desc = ds or S.cDs or (uid and pc(function() return Plrs:GetHumanoidDescriptionFromUserId(uid) end)); if not desc then return "offline-no-desc" end;
+        local set = AnimationEngine.fromDescription(desc); if not set then return "offline-no-set" end;
+        local applied = AnimationEngine.applyToCharacter(ch, set); AnimationEngine.restart(ch);
+        if applied then local n = 0; for _ in pairs(set) do n = n + 1 end; status = n > 0 and "offline" or "offline-empty"; end;
+    end;
+    ensureHumanoidStateAndMotors(ch); return status;
+end;
+
+F.aAc = function(ch, ac)
+    if not ac or not ac:IsA(v5) then return end; local h = ff(ac, vH) or fca(ac, v4); if not h then return end;
+    local iR6 = (F.gTRT(ch) == eR6); if iR6 then ensureR6Attachments(ch) end; local at = fcc(h, vb); makeArchivable(ac);
+    for _, v in ipairs(gD(ac)) do if v:IsA(v4) then v.Anchored, v.CanCollide, v.CanTouch, v.CanQuery, v.Massless, v.Archivable = false, false, false, false, true, true; v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0); elseif v:IsA("Script") or v:IsA("LocalScript") then des(v); end; end;
+    local wrapLayer = fcc(h, vv) or fca(ac, vv); if wrapLayer then pc(function() wrapLayer.Enabled = true end) end;
+    for _, v in ipairs(gC(h)) do if v:IsA(vu) or v:IsA(vt) or v:IsA(va) then des(v) end; end;
+    h.Name, cCI[h], cCI[ac] = vH, true, true; local tP, tA;
+    if at then cAtt[h], cAtt[ac] = at.Name, at.Name; for _, p in ipairs(gC(ch)) do if p:IsA(v4) then local f = ff(p, at.Name); if f and f:IsA(vb) then tP, tA = p, f; break end; end; end; end;
+    if not (tP and tA) then
+        local anL = (at and at.Name:lower()) or ac.Name:lower();
+        if anL:find("hat") or anL:find("hair") or anL:find("face") or anL:find("head") or ac:IsA(v5) then tP = ff(ch, "Head"); if tP then tA = ff(tP, at and at.Name or "") or ff(tP, "HairAttachment") or ff(tP, "HatAttachment") or ff(tP, "FaceCenterAttachment") end;
+        elseif anL:find("neck") then tP = ff(ch, "Torso") or ff(ch, "UpperTorso"); if tP then tA = ff(tP, "NeckAttachment") end;
+        elseif anL:find("back") or anL:find("waist") or anL:find("chest") or anL:find("body") or anL:find("front") then tP = ff(ch, "Torso") or ff(ch, "UpperTorso"); if tP then tA = ff(tP, "BodyBackAttachment") or ff(tP, "BodyFrontAttachment") end;
+        elseif anL:find("leftshoulder") or anL:find("leftarm") then tP = ff(ch, "Left Arm") or ff(ch, "LeftUpperArm") or ff(ch, "Torso"); if tP then tA = ff(tP, "LeftShoulderAttachment") end;
+        elseif anL:find("rightshoulder") or anL:find("rightarm") then tP = ff(ch, "Right Arm") or ff(ch, "RightUpperArm") or ff(ch, "Torso"); if tP then tA = ff(tP, "RightShoulderAttachment") end;
+        elseif anL:find("righthand") or anL:find("rightwrist") then tP = ff(ch, "Right Hand") or ff(ch, "RightLowerArm") or ff(ch, "Right Arm"); if tP then tA = ff(tP, "RightWristAttachment") or ff(tP, "RightGripAttachment") end;
+        elseif anL:find("lefthand") or anL:find("leftwrist") then tP = ff(ch, "Left Hand") or ff(ch, "LeftLowerArm") or ff(ch, "Left Arm"); if tP then tA = ff(tP, "LeftWristAttachment") or ff(tP, "LeftGripAttachment") end; end;
+    end;
+    if not tP and iR6 then tP = ff(ch, "Head"); if tP then tA = ff(tP, "HairAttachment") or ff(tP, "HatAttachment") end; end;
+    if tP then
+        ac.Parent, h.Parent = ch, ac; local c0, c1 = tA and tA.CFrame or CFI, at and at.CFrame or ac.AttachmentPoint or CFI; h.CFrame = tP.CFrame * c0 * c1:Inverse();
+        local w = INew(vs); w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable, w.Parent = "AccessoryWeld", tP, h, c0, c1, true, h;
+    else
+        local tPt = ff(ch, v3) or ff(ch, "Head");
+        if tPt then ac.Parent, h.Parent = ch, ac; local bC0, aPt = CF(0, 0.5, 0), (at and at.CFrame) or ac.AttachmentPoint or CFI; h.CFrame = tPt.CFrame * bC0 * aPt:Inverse(); local w = INew(vs); w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable, w.Parent = "AccessoryWeld", tPt, h, bC0, aPt, true, h; else des(ac); end;
+    end;
+end;
+
+F.rD = function(u, f) if u == "SAVED" then return "Custom" end; local ok, i = pc(function() return US:GetUserInfosByUserIdsAsync({u}) end); return (ok and i and i[1] and i[1].DisplayName ~= "") and i[1].DisplayName or f; end;
+
+F.aDS = function(ch)
+    if not ch then return end; local hm = fcc(ch, v1); if not hm or hm.Health <= 0 then return end; local d = S.cDs;
+    if not d and S.cU and S.cU ~= "SAVED" then pc(function() d = Plrs:GetHumanoidDescriptionFromUserId(S.cU); if d then d = F.sD(d, hm.RigType); S.cDs = d end; end); end;
+    if d then
+        pc(function()
+            for _, x in ipairs(gC(hm)) do if x:IsA(vm) or x.Name == "HumanoidDescription" then des(x) end end;
+            local nD = cln(d); nD.Name, cOE[nD], nD.Parent = "HumanoidDescription", true, hm; makeArchivable(nD);
+            local sD = cln(d); sD.Name, sD.Parent = vm, hm; makeArchivable(sD);
+            local emotes, equippedEmotes = d:GetEmotes(), d:GetEquippedEmotes();
+            if emotes then pc(function() hm:SetEmotes(emotes) end) end;
+            if equippedEmotes then
+                pc(function()
+                    local formattedEquipped = {};
+                    for _, eq in ipairs(equippedEmotes) do table.insert(formattedEquipped, type(eq) == "table" and eq.Name or eq); end;
+                    hm:SetEquippedEmotes(#formattedEquipped > 0 and formattedEquipped or equippedEmotes);
+                end);
+            end;
+        end);
+    end;
+end;
+
+F.aAv = function(ch, dm)
+    if not ch or not dm then return end; local hm = fcc(ch, v1); if not hm or hm.Health <= 0 or #gC(dm) < 2 then return end;
+    local savedJP, savedJH, savedUJP = hm.JumpPower, hm.JumpHeight, hm.UseJumpPower; local cam = workspace.CurrentCamera; local oldCamSubj = cam and cam.CameraSubject;
+    local backpack, savedTools, equippedTool = lp:FindFirstChildOfClass("Backpack"), {}, nil;
+    for _, item in ipairs(gC(ch)) do if item:IsA("Tool") then equippedTool, _ = item, table.insert(savedTools, item); if backpack then item.Parent = backpack end; end; end;
+    local preservedGameParts = {};
+    pc(function()
+        for _, desc in ipairs(gD(ch)) do
+            if (desc:IsA("JointInstance") or desc:IsA("WeldConstraint")) and desc.Name ~= "AccessoryWeld" and desc.Name ~= "CopierGameReattachWeld" and desc.Name ~= "RightGrip" then
+                local p0, p1 = desc.Part0, desc.Part1;
+                if p0 and p1 then
+                    local bPart, ePart; if S.BD[p0.Name] and not S.BD[p1.Name] and not cCI[p1] then bPart, ePart = p0, p1; elseif S.BD[p1.Name] and not S.BD[p0.Name] and not cCI[p0] then bPart, ePart = p1, p0; end;
+                    if bPart and ePart and ePart:IsA(v4) and not ePart:FindFirstAncestorOfClass("Accessory") and not ePart:FindFirstAncestorOfClass("Tool") and ePart.Name ~= v2 and ePart.Name ~= "CopierFakeHead" then table.insert(preservedGameParts, {part = ePart, targetName = bPart.Name, relCFrame = bPart.CFrame:ToObjectSpace(ePart.CFrame)}); des(desc); end;
+                end;
+            end;
+        end;
+    end);
+    for _, t in ipairs(gC(ch)) do if t:IsA("Shirt") or t:IsA("Pants") or t:IsA("ShirtGraphic") or t:IsA("BodyColors") or t:IsA(v5) or t:IsA(vx) or (t:IsA(v4) and cCI[t]) then des(t); end; end;
+    local dHm, lR, tR = fcc(dm, v1), F.gTRT(ch), F.gTRT(dm); local iLR15, iTR15 = (lR == eR15), (tR == eR15); makeArchivable(ch); local d = cln(dm); makeArchivable(d);
+    if lR == eR6 then hm.HipHeight = 0; ensureR6Attachments(ch); elseif dHm and dHm.HipHeight > 0 then hm.HipHeight = dHm.HipHeight; end;
+    local savedFC, curHead = nil, ff(ch, v3); if curHead then local fc = fcc(curHead, vl); if fc then savedFC = cln(fc) end; end;
+    if iLR15 and iTR15 then
+        if hm and dHm then
+            pc(function()
+                for _, sv in ipairs({"BodyDepthScale", "BodyHeightScale", "BodyWidthScale", "HeadScale", "BodyProportionScale", "BodyTypeScale"}) do
+                    local dS = ff(dHm, sv);
+                    if dS and dS:IsA("NumberValue") then local mS = ff(hm, sv); local val = math.clamp(dS.Value, 0.25, 2.0); if sv == "HeadScale" then val = math.clamp(dS.Value, 0.5, 1.25) end; if mS then mS.Value = val else mS = INew("NumberValue"); mS.Name, mS.Value, mS.Parent = sv, val, hm; end; end;
+                end;
+            end);
+        end;
+        local oR = hm.RequiresNeck; hm.RequiresNeck = false; for _, dp in ipairs(gC(d)) do if S.RM[dp.Name] and dp.Name ~= v3 then pc(function() hm:ReplaceBodyPartR15(S.RM[dp.Name], cln(dp)) end); end; end; hm.RequiresNeck = oR;
+    elseif not iLR15 and not iTR15 then
+        local dBC = fcc(d, "BodyColors"); if dBC then local cBC = fcc(ch, "BodyColors"); if cBC then des(cBC) end; cln(dBC).Parent = ch; end;
+        for _, cm in ipairs(gC(ch)) do if cm:IsA(vx) then des(cm) end end; for _, tm in ipairs(gC(d)) do if tm:IsA(vx) then cln(tm).Parent = ch end end;
+        for _, dp in ipairs(gC(d)) do
+            if dp:IsA(v4) and (dp.Name == "Torso" or dp.Name == "Left Arm" or dp.Name == "Right Arm" or dp.Name == "Left Leg" or dp.Name == "Right Leg") then
+                local m = ff(ch, dp.Name); if m and m:IsA(v4) then pc(function() m.Color, m.Transparency = dp.Color, dp.Transparency end); for _, o in ipairs(gC(m)) do if o:IsA(vk) or o:IsA(vj) or o:IsA("BlockMesh") or o:IsA("CylinderMesh") or o:IsA(v8) then des(o) end; end; for _, o in ipairs(gC(dp)) do if o:IsA(vk) or o:IsA(vj) or o:IsA("BlockMesh") or o:IsA("CylinderMesh") or o:IsA(v8) then cln(o).Parent = m end; end; end;
+            end;
+        end;
+    elseif iTR15 then
+        for _, dp in ipairs(gC(d)) do
+            if dp:IsA(v4) and dp.Name ~= v2 and dp.Name ~= v3 then
+                local vP = cln(dp); vP.Name, vP.CanCollide, vP.CanTouch, vP.CanQuery, vP.Massless, vP.Anchored = "Proxy_" .. dp.Name, false, false, false, true, false;
+                vP.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0); cCI[vP], vP.Parent = true, ch; local rL = ff(ch, "Torso") or ff(ch, v3) or ff(ch, v2); if rL then local w = INew(vt); w.Part0, w.Part1, w.Parent = rL, vP, vP; end;
+            end;
+        end;
+    end;
+    if iLR15 then pc(function() for _, dPart in ipairs(gC(d)) do if dPart:IsA(v4) and S.BD[dPart.Name] then local myPart = ff(ch, dPart.Name); if myPart then for _, wtInDummy in ipairs(gC(dPart)) do if wtInDummy:IsA(vw) and not ff(myPart, wtInDummy.Name) then cln(wtInDummy).Parent = myPart; end; end; end; end; end; end); end;
+    local rH, duH = ff(ch, v3), ff(d, v3);
+    if rH and duH and not Cfg.KeepOwnHead then
+        normalizeHeadSize(rH, duH, hm); local dSA, rSA = fcc(duH, vi), fcc(rH, vi);
+        if dSA then if rSA then des(rSA) end; cln(dSA).Parent = rH; elseif rSA and not dSA then des(rSA); end;
+        local dFace, rFace = ff(duH, "face") or fcc(duH, v8), ff(rH, "face") or fcc(rH, v8); if dFace then if not rFace then rFace = INew(v8, rH); rFace.Name = "face"; end; rFace.Texture = dFace.Texture; end;
+    end;
+    if rH and savedFC and not fcc(rH, vl) then savedFC.Parent = rH end;
+    for _, t in ipairs(gC(d)) do pc(function() if t:IsA(v5) then F.aAc(ch, cln(t)); elseif t:IsA("Shirt") or t:IsA("Pants") or t:IsA("ShirtGraphic") or t:IsA("BodyColors") then local cl = cln(t); cCI[cl], cl.Parent = true, ch; end; end); end; des(d);
+    pc(function()
+        for _, item in ipairs(preservedGameParts) do
+            local p = item.part;
+            if p and p.Parent then
+                p.Anchored, p.CanCollide, p.CanTouch, p.CanQuery, p.Massless = false, false, false, false, true; p.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0);
+                local tPart = ff(ch, item.targetName) or ff(ch, "Torso") or ff(ch, "UpperTorso") or ff(ch, v2);
+                if tPart then p.CFrame = tPart.CFrame * item.relCFrame; local w = INew(vs); w.Name, w.Part0, w.Part1, w.C0, w.C1, w.Archivable, w.Parent = "CopierGameReattachWeld", tPart, p, item.relCFrame, CFI, true, p; end;
+            end;
+        end;
+    end);
+    local cg = ff(ch, v2) and ff(ch, v2).CollisionGroup or "Default";
+    for _, v in ipairs(gD(ch)) do
+        pc(function()
+            v.Archivable = true;
+            if v:IsA(v4) then
+                v.CollisionGroup = cg; if v.Name ~= v2 then v.Anchored = false end;
+                if v.Name == "CopierFakeHead" or v.Name == "Copier2DFace" or cCI[v] or not S.BD[v.Name] then v.CanCollide, v.CanTouch, v.CanQuery, v.Massless = false, false, false, true; v.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0); end;
+            end;
+        end);
+    end;
+    ch.Archivable = true; if savedUJP ~= nil then hm.UseJumpPower = savedUJP end; if savedJP and savedJP > 0 then hm.JumpPower = savedJP end; if savedJH and savedJH > 0 then hm.JumpHeight = savedJH end;
+    ensureHumanoidStateAndMotors(ch); if cam and oldCamSubj and oldCamSubj.Parent then cam.CameraSubject = oldCamSubj; elseif cam and hm then cam.CameraSubject = hm; end;
+    F.aC(); F.aDS(ch); if backpack then for _, tool in ipairs(savedTools) do if tool and tool.Parent then tool.Parent = backpack end; end; end;
+    if equippedTool and equippedTool.Parent then tw(0.05); if hm and hm.Health > 0 and ch and ch.Parent then pc(function() hm:EquipTool(equippedTool) end); if equippedTool.Parent ~= ch then equippedTool.Parent = ch end; end; end;
+end;
+
+F.rA = function(ch) local a = ff(ch, vz); if a then a.Enabled = false; a.Enabled = true; end; ensureHumanoidStateAndMotors(ch); end;
+
+local function isDummyCutsceneModel(m)
+    if not m or not m:IsA("Model") or m == lp.Character or m:FindFirstChild("_copierApplied") or m.Name == "LHDDummy" or m.Name:find("Copier") or m.Name:find("StartupP") then return false; end;
+    local hm = fcc(m, v1); if not hm then return false end;
+    local mName, hDisplayName = m.Name:lower(), (hm.DisplayName or ""):lower();
+    local tN, tD = gTN():lower(), gTD():lower();
+    local isMatch = (mName == rNL or mName == rDL or (tN ~= "" and (mName == tN or mName == tD))) or (hDisplayName == rNL or hDisplayName == rDL or (tN ~= "" and (hDisplayName == tN or hDisplayName == tD)));
+    local uVal = ff(m, "UserId") or m:GetAttribute("UserId");
+    if uVal and (tostring(uVal) == mI or tostring(uVal) == tostring(S.cU) or tonumber(uVal) == lp.UserId) then isMatch = true end;
+    return isMatch;
+end;
+
+local function applyToCutsceneModel(cr)
+    if not IA() or cOE_cr[cr] or not S.isCopied or not S.cD then return end;
+    if not (cr:WaitForChild(v1, 3) and cr:WaitForChild(v2, 3) and cr:WaitForChild(v3, 3)) then return end;
+    if isDummyCutsceneModel(cr) then
+        cOE_cr[cr] = true;
+        pc(function()
+            local mark = INew("BoolValue"); mark.Name, mark.Parent = "_copierApplied", cr;
+            F.aAv(cr, S.cD); if S.cU then F.sHD(cr, S.cU) end; F.aDS(cr); pc(function() F.cNA(cr, S.cU, S.cDs) end); F.rA(cr);
+        end);
+    end;
+end;
+
+local function scanCutsceneModels()
+    if not S.isCopied or not S.cD then return end;
+    for _, v in ipairs(workspace:GetDescendants()) do if v:IsA("Model") and isDummyCutsceneModel(v) then ts(applyToCutsceneModel, v) end; end;
+end;
+
+F.dC = function(nm, iR, pC, keepDesc)
+    if not IA() then return false end; local s = false;
+    pc(function()
+        local ch = pC or lp.Character; if not ch then return end; local hm = fcc(ch, v1); if not hm or hm.Health <= 0 or (S.appliedThisLife and iR) then return end;
+        local rt, uid = F.gTRT(ch) or hm.RigType, nil;
+        if iR then uid = S.cU;
+        else
+            local tU, aN, aD = gUID(nm, keepDesc or S.cDs ~= nil); if not tU and not S.cDs then return end;
+            if tU then
+                local md, dc = F.mD(tU, rt); if not md then return end;
+                uid, S.cU, S.tN, S.tD, S.cD, _G.CTID, Cfg.A = tU, tU, aN or S.tN, aD or S.tD, md, tU, nm;
+                if S.cD then des(S.cD) end; S.cD = md;
+                if dc and not keepDesc then dc = F.sD(dc, rt); S.cDs = dc end;
+            else
+                uid = S.cU or lp.UserId; local md, dc = F.mD(uid, rt); if not md then return end;
+                if S.cD then des(S.cD) end; S.cD = md;
+                if dc and not keepDesc and not S.cDs then dc = F.sD(dc, rt); S.cDs = dc end;
+            end;
+        end;
+        if not S.cD or not S.cD.Parent or #gC(S.cD) < 2 then if S.cU then local md, dc = F.mD(S.cU, rt); if md then S.cD = md; if dc and not keepDesc then S.cDs = dc end end; end; end;
+        if not S.cD then return end; s, S.isCopied, S.mode = true, true, "copy"; F.aAv(ch, S.cD); if uid then F.sHD(ch, uid) end; F.aDS(ch);
+        local tD = S.cDs; if tD then pc(function() hm:SetEmotes(tD:GetEmotes()); hm:SetEquippedEmotes(tD:GetEquippedEmotes()); end); end;
+        local aStat; pc(function() aStat = F.cNA(ch, uid, tD) end); F.rA(ch); S.appliedThisLife = true;
+        scanCutsceneModels();
+        setupAutoExecuteQueue();
+        if not iR then
+            pc(function()
+                local animTxt = "Default"; if aStat == "online" then animTxt = "Live Animate"; elseif aStat == "offline" then animTxt = "Offline Pkg"; elseif aStat == "offline-failed" or aStat == "offline-empty" or aStat == "offline-no-set" then animTxt = "Pkg Failed"; end;
+                SG:SetCore(vg, {Title = vf, Text = "Copied: " .. tostring(gTD()) .. " | Anim: " .. animTxt, Duration = 4});
+            end);
+        end;
+    end);
+    return s;
+end;
+
+ts(function()
+    local s = SaveSys.load();
+    local lastActive = s["_last_active"];
+    if lastActive and s[lastActive] then
+        local activeData = s[lastActive];
+        if activeData and activeData.desc then
+            tw(0.5);
+            local targetDesc = deserializeDescription(activeData.desc);
+            if targetDesc then
+                S.cU, S.tN, S.tD, S.cDs, S.mode = activeData.uid or lp.UserId, activeData.tN or lp.Name, activeData.tD or lp.DisplayName, targetDesc, "copy";
+                if lp.Character then F.dC(tostring(S.cU), false, nil, true) end;
+                pc(function() SG:SetCore(vg, {Title = vf, Text = "Auto-Loaded Active Persistent Outfit: " .. lastActive, Duration = 5}) end);
+            end;
+        end;
+    end;
+end);
+
+ts(function()
+    while IA() do
+        tw(2.5);
+        if S.isCopied and lp.Character and fcc(lp.Character, v1) and fcc(lp.Character, v1).Health > 0 then
+            local ch = lp.Character;
+            if S.mode == "copy" then local accCount = 0; for _, v in ipairs(gC(ch)) do if v:IsA(v5) then accCount = accCount + 1 end; end; if accCount == 0 and S.cU then F.dC(tostring(S.cU), true); end;
+            elseif S.mode == "clone" then if not CloneEngine.dummy or not CloneEngine.dummy.Parent then if S.cU then CloneEngine.start(S.cU) end; end; end;
+            scanCutsceneModels();
+        end;
+    end;
+end);
+
+RC(workspace.DescendantAdded:Connect(function(v) if IA() and v:IsA("Model") and v ~= lp.Character and isDummyCutsceneModel(v) then ts(applyToCutsceneModel, v) end end));
+if workspace.CurrentCamera then RC(workspace.CurrentCamera.ChildAdded:Connect(function(v) if IA() and v:IsA("Model") and v ~= lp.Character and isDummyCutsceneModel(v) then ts(applyToCutsceneModel, v) end end)); end;
+
+RC(lp.CharacterAdded:Connect(function(nC)
+    if not IA() or nC:FindFirstChild("_copierApplied") then return end; S.appliedThisLife = false; if not S.isCopied or not S.cU then return end;
+    ts(function()
+        local hm, root, head = nC:WaitForChild(v1, 10), nC:WaitForChild(v2, 10), nC:WaitForChild(v3, 10); if not hm or not root or not head or not IA() or not nC.Parent then return end;
+        protectCharacterFromAutoReset(nC); local mark = INew("BoolValue"); mark.Name, mark.Parent = "_copierApplied", nC; tw(0.25);
+        if S.isCopied then
+            if S.mode == "clone" then CloneEngine.start(S.cU);
+            else pc(function() F.aAv(nC, S.cD); if S.cU then F.sHD(nC, S.cU) end; F.aDS(nC); local tD = S.cDs; if tD then pc(function() hm:SetEmotes(tD:GetEmotes()); hm:SetEquippedEmotes(tD:GetEquippedEmotes()); end); end; pc(function() F.cNA(nC, S.cU, tD) end); F.rA(nC); S.appliedThisLife = true; end);
+            end;
+        end;
+    end);
+end));
+
+if lp.Character then protectCharacterFromAutoReset(lp.Character) end;
+
+pc(function()
+    SG:SetCore(vg, {
+        Title = isPC and "PC Executor Engine Active" or "Mobile ClonerPersistent (+10.77% UX)",
+        Text = "Metatable & Cross-Game Queue Active. Cmds: !copy <usr> | !save <slot> | !changer <slot>",
+        Duration = 8
+    });
+end);
